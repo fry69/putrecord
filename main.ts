@@ -18,7 +18,13 @@ const MARKDOWN_PATH = getRequiredEnv("MARKDOWN_PATH");
 const HANDLE = getRequiredEnv("HANDLE");
 
 // 2. Read markdown file
-const content = await Deno.readTextFile(MARKDOWN_PATH);
+let content: string;
+try {
+  content = await Deno.readTextFile(MARKDOWN_PATH);
+} catch (error) {
+  console.error("Failed to read markdown file:", error);
+  Deno.exit(1);
+}
 
 // 3. Authenticate using AtpAgent (from @atproto/api)
 const agent = new AtpAgent({ service: PDS_URL });
