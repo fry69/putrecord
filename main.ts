@@ -1,17 +1,21 @@
-import { load } from "jsr:@std/dotenv@0.225.5";
 import { AtpAgent } from "npm:@atproto/api@0.15.14";
 
 // 1. Load environment variables
-const env = await load();
+function getRequiredEnv(key: string): string {
+  const value = Deno.env.get(key);
+  if (!value) {
+    console.error(`Missing required environment variable: ${key}`);
+    Deno.exit(1);
+  }
+  return value;
+}
 
-const {
-  PDS_URL,
-  DID,
-  RKEY,
-  APP_PASSWORD,
-  MARKDOWN_PATH,
-  HANDLE,
-} = env;
+const PDS_URL = getRequiredEnv("PDS_URL");
+const DID = getRequiredEnv("DID");
+const RKEY = getRequiredEnv("RKEY");
+const APP_PASSWORD = getRequiredEnv("APP_PASSWORD");
+const MARKDOWN_PATH = getRequiredEnv("MARKDOWN_PATH");
+const HANDLE = getRequiredEnv("HANDLE");
 
 // 2. Read markdown file
 const content = await Deno.readTextFile(MARKDOWN_PATH);
