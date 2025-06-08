@@ -1,0 +1,26 @@
+name: Update Blog Post
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  update-blog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run update script
+        env:
+          PDS_URL: ${{ secrets.PDS_URL }}
+          DID: ${{ secrets.DID }}
+          RKEY: ${{ secrets.RKEY }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          HANDLE: ${{ secrets.HANDLE }}
+          MARKDOWN_PATH: "./blog-post.md"
+        run: deno run --allow-net --allow-read --allow-env main.ts
