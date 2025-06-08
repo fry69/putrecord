@@ -22,5 +22,5 @@ jobs:
           DID: ${{ secrets.DID }}
           HANDLE: ${{ secrets.HANDLE }}
           RKEY: "3lqyx2g4fk42z"
-          MARKDOWN_PATH: "./blog-post.md"
+          MARKDOWN_PATH: "./posts/blog-post.md"
         run: deno run --allow-net --allow-read --allow-env main.ts
