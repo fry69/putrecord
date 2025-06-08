@@ -1,7 +1,10 @@
 name: Update Blog Post
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - 'posts/*.md'
   workflow_dispatch:
 
 jobs:
@@ -13,6 +16,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
+          cache: true
           deno-version: v2.x
 
       - name: Run update script
