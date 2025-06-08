@@ -17,10 +17,10 @@ jobs:
 
       - name: Run update script
         env:
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
           PDS_URL: ${{ secrets.PDS_URL }}
           DID: ${{ secrets.DID }}
-          RKEY: ${{ secrets.RKEY }}
-          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
           HANDLE: ${{ secrets.HANDLE }}
+          RKEY: "3lqyx2g4fk42z"
           MARKDOWN_PATH: "./blog-post.md"
         run: deno run --allow-net --allow-read --allow-env main.ts
