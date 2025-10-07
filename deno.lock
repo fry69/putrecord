@@ -1,12 +1,27 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@atcute/tid@*": "1.0.2",
     "jsr:@std/dotenv@0.225.5": "0.225.5",
+    "jsr:@std/fs@1": "1.0.17",
+    "jsr:@std/path@^1.0.9": "1.0.9",
     "npm:@atproto/api@0.15.14": "0.15.14"
   },
   "jsr": {
+    "@atcute/tid@1.0.2": {
+      "integrity": "83e41a7d14fbb90d384f6ab1d6084eb5eedbd2cd29699a15dcfe9c1138a8bf66"
+    },
     "@std/dotenv@0.225.5": {
       "integrity": "9ce6f9d0ec3311f74a32535aa1b8c62ed88b1ab91b7f0815797d77a6f60c922f"
+    },
+    "@std/fs@1.0.17": {
+      "integrity": "1c00c632677c1158988ef7a004cb16137f870aafdb8163b9dce86ec652f3952b",
+      "dependencies": [
+        "jsr:@std/path"
+      ]
+    },
+    "@std/path@1.0.9": {
+      "integrity": "260a49f11edd3db93dd38350bf9cd1b4d1366afa98e81b86167b4e3dd750129e"
     }
   },
   "npm": {

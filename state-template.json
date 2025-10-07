@@ -1,0 +1,8 @@
+{
+  "pds_url": "your_pds",
+  "did": "your_did",
+  "handle": "your_handle",
+  "collection": "com.whtwnd.blog.entry",
+  "path": "posts",
+  "files": []
+}
