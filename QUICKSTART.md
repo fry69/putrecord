@@ -92,7 +92,8 @@ Uploading to com.whtwnd.blog.entry/my-first-post...
 
 ## 7. Verify
 
-- For WhiteWind: Visit `https://whtwnd.com/your-handle.bsky.social/entries/my-first-post`
+- For WhiteWind: Visit
+  `https://whtwnd.com/your-handle.bsky.social/entries/my-first-post`
 - Check your AT-URI in any AT Protocol viewer
 
 ## Common Issues

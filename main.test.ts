@@ -2,7 +2,7 @@
  * Unit tests for main.ts functions
  */
 
-import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
+import { expect } from "@std/expect";
 import { createBlogRecord, loadConfig, readMarkdown } from "./main.ts";
 
 Deno.test("loadConfig - should load all required environment variables", () => {
@@ -16,12 +16,12 @@ Deno.test("loadConfig - should load all required environment variables", () => {
 
   const config = loadConfig();
 
-  assertEquals(config.pdsUrl, "https://test.pds");
-  assertEquals(config.identifier, "test.handle");
-  assertEquals(config.password, "test-pass");
-  assertEquals(config.collection, "com.whtwnd.blog.entry");
-  assertEquals(config.rkey, "test-rkey");
-  assertEquals(config.markdownPath, "./test.md");
+  expect(config.pdsUrl).toBe("https://test.pds");
+  expect(config.identifier).toBe("test.handle");
+  expect(config.password).toBe("test-pass");
+  expect(config.collection).toBe("com.whtwnd.blog.entry");
+  expect(config.rkey).toBe("test-rkey");
+  expect(config.markdownPath).toBe("./test.md");
 
   // Cleanup
   Deno.env.delete("PDS_URL");
@@ -41,28 +41,21 @@ Deno.test("loadConfig - should throw if required variable is missing", () => {
   Deno.env.delete("RKEY");
   Deno.env.delete("MARKDOWN_PATH");
 
-  let error: Error | undefined;
-  try {
-    loadConfig();
-  } catch (e) {
-    error = e as Error;
-  }
-
-  assertEquals(error !== undefined, true);
-  assertStringIncludes(error!.message, "Missing required environment variable");
+  expect(() => loadConfig()).toThrow("Missing required environment variable");
 });
 
 Deno.test("createBlogRecord - should create valid WhiteWind blog entry", () => {
   const content = "# Test Blog Post\n\nThis is a test.";
   const record = createBlogRecord(content);
 
-  assertEquals(record.$type, "com.whtwnd.blog.entry");
-  assertEquals(record.content, content);
-  assertEquals(typeof record.createdAt, "string");
+  expect(record.$type).toBe("com.whtwnd.blog.entry");
+  expect(record.content).toBe(content);
+  expect(typeof record.createdAt).toBe("string");
 
   // Validate ISO timestamp
   const timestamp = new Date(record.createdAt as string);
-  assertEquals(timestamp instanceof Date && !isNaN(timestamp.getTime()), true);
+  expect(timestamp).toBeInstanceOf(Date);
+  expect(timestamp.getTime()).not.toBeNaN();
 });
 
 Deno.test("readMarkdown - should read markdown file successfully", async () => {
@@ -74,7 +67,7 @@ Deno.test("readMarkdown - should read markdown file successfully", async () => {
 
   try {
     const content = await readMarkdown(testFile);
-    assertEquals(content, testContent);
+    expect(content).toBe(testContent);
   } finally {
     // Cleanup
     await Deno.remove(testFile);
@@ -82,11 +75,7 @@ Deno.test("readMarkdown - should read markdown file successfully", async () => {
 });
 
 Deno.test("readMarkdown - should throw error for non-existent file", async () => {
-  await assertRejects(
-    async () => {
-      await readMarkdown("./non-existent-file.md");
-    },
-    Error,
+  await expect(readMarkdown("./non-existent-file.md")).rejects.toThrow(
     "Failed to read file",
   );
 });

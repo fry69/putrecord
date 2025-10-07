@@ -2,7 +2,9 @@
 
 ## Overview
 
-Successfully re-implemented the atproto-push script from scratch with a focus on minimalism and clarity. The new implementation reduces complexity while maintaining core functionality.
+Successfully re-implemented the atproto-push script from scratch with a focus on
+minimalism and clarity. The new implementation reduces complexity while
+maintaining core functionality.
 
 ## What Was Built
 
@@ -246,11 +248,13 @@ Possible additions that maintain simplicity:
 
 ## Conclusion
 
-The reimplementation achieves the goal of a minimal, focused tool for uploading markdown to AT Protocol. It's:
+The reimplementation achieves the goal of a minimal, focused tool for uploading
+markdown to AT Protocol. It's:
 
 - **Easier to understand**: Clear, linear flow
 - **Easier to test**: All functions independently testable
 - **Easier to maintain**: Less code, clearer purpose
 - **Easier to use**: Simple configuration, clear errors
 
-The trade-off is flexibility for simplicity, which aligns with the stated goal of extracting the "minimal core" functionality.
+The trade-off is flexibility for simplicity, which aligns with the stated goal
+of extracting the "minimal core" functionality.

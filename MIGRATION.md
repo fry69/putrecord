@@ -1,6 +1,7 @@
 # Migration Guide: v1 → v2
 
-This guide helps you migrate from the old overengineered version to the new minimal implementation.
+This guide helps you migrate from the old overengineered version to the new
+minimal implementation.
 
 ## Key Changes
 
@@ -103,7 +104,8 @@ In your GitHub repository settings:
 
    - `IDENTIFIER` = your `HANDLE` from old setup
    - `COLLECTION` = `com.whtwnd.blog.entry` (or your collection)
-   - `RKEY` = the rkey from your `state.json` for the file you want to continue updating
+   - `RKEY` = the rkey from your `state.json` for the file you want to continue
+     updating
    - `MARKDOWN_PATH` = `./posts/blog-post.md` (or your file path)
 
 3. Remove old secrets (optional cleanup):
@@ -120,7 +122,8 @@ Look at your old `state.json`:
 }
 ```
 
-Use the existing `rkey` to continue updating the same record, or choose a new one.
+Use the existing `rkey` to continue updating the same record, or choose a new
+one.
 
 ### Step 4: Test Locally
 
@@ -138,7 +141,8 @@ Remove files that are no longer needed:
 rm state.json state-template.json
 ```
 
-Note: Keep `.env.template` if you want, but `.env.example` is the new recommended template.
+Note: Keep `.env.template` if you want, but `.env.example` is the new
+recommended template.
 
 ## Feature Comparison
 

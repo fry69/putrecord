@@ -3,7 +3,7 @@
  * These tests mock the network calls to avoid real PDS interaction
  */
 
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { expect } from "@std/expect";
 import { Client, CredentialManager } from "@atcute/client";
 
 /**
@@ -30,7 +30,7 @@ Deno.test("Integration - workflow validation", async () => {
   try {
     // Step 3: Read the file
     const content = await Deno.readTextFile(mockConfig.markdownPath);
-    assertEquals(content, testContent);
+    expect(content).toBe(testContent);
 
     // Step 4: Create record structure
     const record = {
@@ -40,18 +40,18 @@ Deno.test("Integration - workflow validation", async () => {
     };
 
     // Validate record structure
-    assertEquals(record.$type, "com.whtwnd.blog.entry");
-    assertEquals(record.content, testContent);
-    assertStringIncludes(record.createdAt, "T"); // ISO format check
+    expect(record.$type).toBe("com.whtwnd.blog.entry");
+    expect(record.content).toBe(testContent);
+    expect(record.createdAt).toContain("T"); // ISO format check
 
     // Step 5: Validate that Client and CredentialManager can be instantiated
     // (without actually connecting)
     const manager = new CredentialManager({ service: mockConfig.pdsUrl });
     const client = new Client({ handler: manager });
 
-    assertEquals(typeof manager, "object");
-    assertEquals(typeof client, "object");
-    assertEquals(typeof client.post, "function");
+    expect(typeof manager).toBe("object");
+    expect(typeof client).toBe("object");
+    expect(typeof client.post).toBe("function");
 
     // Note: We don't actually call login() or post() to avoid network calls
     // In a real integration test environment, you would:
@@ -94,10 +94,10 @@ Deno.test("Integration - data transformation flow", async () => {
     };
 
     // Validate payload structure
-    assertEquals(requestPayload.collection, "com.whtwnd.blog.entry");
-    assertEquals(requestPayload.rkey, "test-rkey");
-    assertEquals(requestPayload.record.$type, "com.whtwnd.blog.entry");
-    assertEquals(requestPayload.record.content, originalContent);
+    expect(requestPayload.collection).toBe("com.whtwnd.blog.entry");
+    expect(requestPayload.rkey).toBe("test-rkey");
+    expect(requestPayload.record.$type).toBe("com.whtwnd.blog.entry");
+    expect(requestPayload.record.content).toBe(originalContent);
   } finally {
     await Deno.remove(tempFile);
   }
@@ -127,12 +127,12 @@ Deno.test("Integration - environment configuration", () => {
     Deno.env.set("MARKDOWN_PATH", "./integration-test.md");
 
     // Verify all vars are set
-    assertEquals(Deno.env.get("PDS_URL"), "https://integration-test.pds");
-    assertEquals(Deno.env.get("IDENTIFIER"), "integration.test");
-    assertEquals(Deno.env.get("APP_PASSWORD"), "int-test-pass");
-    assertEquals(Deno.env.get("COLLECTION"), "com.whtwnd.blog.entry");
-    assertEquals(Deno.env.get("RKEY"), "integration-rkey");
-    assertEquals(Deno.env.get("MARKDOWN_PATH"), "./integration-test.md");
+    expect(Deno.env.get("PDS_URL")).toBe("https://integration-test.pds");
+    expect(Deno.env.get("IDENTIFIER")).toBe("integration.test");
+    expect(Deno.env.get("APP_PASSWORD")).toBe("int-test-pass");
+    expect(Deno.env.get("COLLECTION")).toBe("com.whtwnd.blog.entry");
+    expect(Deno.env.get("RKEY")).toBe("integration-rkey");
+    expect(Deno.env.get("MARKDOWN_PATH")).toBe("./integration-test.md");
   } finally {
     // Restore original env vars
     Object.entries(backup).forEach(([key, value]) => {
