@@ -1,6 +1,6 @@
-import { AtpAgent } from "npm:@atproto/api@0.15.14";
-import * as TID from 'jsr:@atcute/tid';
-import { walk } from "jsr:@std/fs@^1.0.0";
+import { AtpAgent } from "@atproto/api";
+import * as TID from "@atcute/tid";
+import { walk } from "@std/fs";
 import state from "./state.json" with { type: "json" };
 
 // Types for better type safety
@@ -55,7 +55,7 @@ function getRequiredEnv(key: string): string {
 function removeFooter(content: string): string {
   // Look for the footer pattern and remove it
   const footerRegex = /\n\n---\n\*Last updated: [^*]+\*$/;
-  return content.replace(footerRegex, '');
+  return content.replace(footerRegex, "");
 }
 
 const APP_PASSWORD = getRequiredEnv("APP_PASSWORD");
@@ -88,7 +88,9 @@ try {
       markdownFiles.push(entry.name);
     }
   }
-  console.log(`Found ${markdownFiles.length} markdown files: ${markdownFiles.join(', ')}`);
+  console.log(
+    `Found ${markdownFiles.length} markdown files: ${markdownFiles.join(", ")}`,
+  );
 } catch (error) {
   console.error(`Failed to scan directory ${workingState.path}:`, error);
   Deno.exit(1);
@@ -109,10 +111,12 @@ for (const filename of markdownFiles) {
   }
 
   // Check if file already exists in state
-  const existingFile = workingState.files.find(f => f.name === filename);
+  const existingFile = workingState.files.find((f) => f.name === filename);
 
   if (existingFile) {
-    console.log(`File ${filename} found in state with rkey: ${existingFile.rkey}`);
+    console.log(
+      `File ${filename} found in state with rkey: ${existingFile.rkey}`,
+    );
 
     // Fetch existing record from PDS
     try {
@@ -123,7 +127,7 @@ for (const filename of markdownFiles) {
       });
 
       const existingRecord = getRes.data.value as unknown as BlogRecord;
-      const existingContent = removeFooter(existingRecord.content || '');
+      const existingContent = removeFooter(existingRecord.content || "");
 
       // Compare content (without footer)
       if (existingContent === fileContent) {
@@ -145,13 +149,13 @@ for (const filename of markdownFiles) {
         record: existingRecord,
       });
 
-      console.log(`Successfully updated ${filename} (rkey: ${existingFile.rkey})`);
-
+      console.log(
+        `Successfully updated ${filename} (rkey: ${existingFile.rkey})`,
+      );
     } catch (error) {
       console.error(`Failed to update existing record for ${filename}:`, error);
       continue;
     }
-
   } else {
     console.log(`File ${filename} is new, creating record...`);
 
@@ -179,8 +183,9 @@ for (const filename of markdownFiles) {
         rkey: rkey,
       });
 
-      console.log(`Successfully created new record for ${filename} (rkey: ${rkey})`);
-
+      console.log(
+        `Successfully created new record for ${filename} (rkey: ${rkey})`,
+      );
     } catch (error) {
       console.error(`Failed to create new record for ${filename}:`, error);
       continue;
@@ -191,7 +196,10 @@ for (const filename of markdownFiles) {
 // 4. Write updated state back to state.json
 try {
   console.log("\nSaving updated state to state.json...");
-  await Deno.writeTextFile("./state.json", JSON.stringify(workingState, null, 2));
+  await Deno.writeTextFile(
+    "./state.json",
+    JSON.stringify(workingState, null, 2),
+  );
   console.log("State saved successfully!");
 } catch (error) {
   console.error("Failed to save state:", error);
