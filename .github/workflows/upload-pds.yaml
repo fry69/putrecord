@@ -1,4 +1,5 @@
-name: Update Blog Post
+name: Upload to PDS
+
 on:
   push:
     branches:
@@ -8,23 +9,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-blog:
+  upload:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          cache: true
           deno-version: v2.x
 
-      - name: Run update script
+      - name: Run tests
+        run: deno task test
+
+      - name: Upload to PDS
         env:
-          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
           PDS_URL: ${{ secrets.PDS_URL }}
-          DID: ${{ secrets.DID }}
-          HANDLE: ${{ secrets.HANDLE }}
-          RKEY: "3lqyx2g4fk42z"
-          MARKDOWN_PATH: "./posts/blog-post.md"
-        run: deno run --allow-net --allow-read --allow-write --allow-env main.ts
+          IDENTIFIER: ${{ secrets.IDENTIFIER }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          COLLECTION: ${{ secrets.COLLECTION }}
+          RKEY: ${{ secrets.RKEY }}
+          MARKDOWN_PATH: ${{ secrets.MARKDOWN_PATH }}
+        run: deno task upload

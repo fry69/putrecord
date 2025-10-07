@@ -1,0 +1,21 @@
+# Environment variables
+.env
+
+# Deno
+deno.lock
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.test.md
+test-*.md
+*-temp*.md
