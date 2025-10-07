@@ -61,6 +61,10 @@ deno task upload
 deno task test
 ```
 
+Unit tests cover basic functionality and error handling. They primarily serve as
+documentation of expected behavior. The upload functionality (`uploadRecord`)
+requires manual testing or network mocking.
+
 ## API
 
 ### `loadConfig(): Config`
