@@ -26,7 +26,17 @@ deno task upload
 
 ### GitHub Actions
 
-Add secrets to repository settings, then push changes to trigger upload.
+Upload secrets to repository:
+
+```bash
+# Using GitHub CLI
+gh secret set -f .env
+
+# Or using deno task
+deno task secrets
+```
+
+Then push changes to trigger upload.
 
 ## Example: WhiteWind Blog
 
