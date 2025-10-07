@@ -2,9 +2,7 @@
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check main.ts",
     "upload": "deno run --allow-net --allow-env --allow-read main.ts",
-    "test": "deno test --allow-net --allow-env --allow-read --allow-write",
-    "test:unit": "deno test --allow-env --allow-read --allow-write main.test.ts",
-    "test:integration": "deno test --allow-net --allow-env --allow-read integration.test.ts"
+    "test": "deno test --allow-net --allow-env --allow-read --allow-write"
   },
   "imports": {
     "@atcute/atproto": "npm:@atcute/atproto@^3.1.4",
