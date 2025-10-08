@@ -11,10 +11,12 @@ putrecord/
 │   ├── lib.ts          # Library functions
 │   └── templates.ts    # Inlined templates for init command
 ├── tests/
-│   ├── lib.test.ts     # Unit tests for library functions
-│   ├── init.test.ts    # Unit tests for init command
-│   └── lib.e2e.test.ts # E2E tests against real PDS
-├── docs/               # Documentation
+│   ├── lib.test.ts       # Unit tests for library functions
+│   ├── init.test.ts      # Unit tests for init command
+│   ├── lib.e2e.test.ts   # E2E tests against real PDS (library)
+│   ├── main.e2e.test.ts  # E2E tests against real PDS (CLI)
+│   └── test_utils.ts     # Cross-platform test utilities
+├── docs/                 # Documentation
 ├── workflow.yaml       # Example workflow (reference)
 ├── .env.example        # Example config (reference)
 └── deno.json          # Project configuration
@@ -48,27 +50,34 @@ services.
 # Run all unit tests
 deno task test:unit
 
-# Run only library tests
-deno task test
-
-# Run only init tests
-deno task test:init
+# Run specific test file
+deno test -A tests/lib.test.ts
+deno test -A tests/init.test.ts
 ```
 
 **Unit test coverage:**
 
-- `tests/lib.test.ts` (8 tests):
+- `tests/lib.test.ts` (15 tests):
 
   - Configuration loading from environment variables
   - Record building for text and JSON content
+  - WhiteWind blog entry handling
+  - Field preservation on updates
+  - Force fields override behavior
   - File reading operations
 
 - `tests/init.test.ts` (11 tests):
-  - Directory creation
+  - Directory creation (cross-platform)
   - File generation (workflow, .env.example)
   - Force flag behavior
   - Quiet mode output suppression
   - Skip behavior for existing files
+
+**Note on cross-platform testing:**
+
+Tests use the `test_utils.ts` module to ensure cross-platform compatibility,
+especially for path handling on Windows vs Unix-like systems. See
+[TEST_UTILITIES.md](TEST_UTILITIES.md) for details.
 
 ### End-to-End Tests
 
@@ -93,10 +102,22 @@ deno task test:e2e
 
 **E2E test coverage:**
 
-- `tests/lib.e2e.test.ts` (3 tests):
+- `tests/lib.e2e.test.ts` (7 tests):
+
   - Creating new records (without RKEY)
   - Updating existing records (with RKEY)
   - Error handling for invalid operations
+  - WhiteWind field preservation (title, visibility)
+  - Force fields override behavior
+
+- `tests/main.e2e.test.ts` (3 tests):
+  - CLI workflow with field preservation
+  - CLI with `--force-fields` flag
+  - CLI with `FORCE_FIELDS` environment variable
+
+**Total: 10 E2E tests** validating real-world usage patterns.
+
+See [E2E_TESTING.md](E2E_TESTING.md) for detailed E2E testing documentation.
 
 **Important:** E2E tests automatically clean up created records.
 

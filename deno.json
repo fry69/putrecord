@@ -19,6 +19,7 @@
     "@atcute/lexicons": "npm:@atcute/lexicons@^1.1.1",
     "@atcute/whitewind": "npm:@atcute/whitewind@^3.1.0",
     "@std/cli": "jsr:@std/cli@^1.0.23",
-    "@std/expect": "jsr:@std/expect@^1.0.17"
+    "@std/expect": "jsr:@std/expect@^1.0.17",
+    "@std/path": "jsr:@std/path@^1.0.8"
   }
 }

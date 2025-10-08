@@ -13,6 +13,8 @@ Welcome to the `@fry69/putrecord` documentation!
   guide
 - **[E2E_TESTING.md](E2E_TESTING.md)** - End-to-end testing guide for WhiteWind
   features
+- **[TEST_UTILITIES.md](TEST_UTILITIES.md)** - Cross-platform test utilities and
+  path handling
 
 ## Documentation Structure
 

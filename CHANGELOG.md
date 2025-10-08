@@ -1,3 +1,10 @@
+### v0.2.1
+
+- fix accidentally deleted test task
+- fix CI worflow dependcy
+- fix init tests failing on Windows
+- created test utility library
+
 ### v0.2.0
 
 - add changelog
@@ -8,8 +15,6 @@
 - add end to end tests for WhiteWind support incl. CLI
 - document end to end tests
 - cleanup tasks
-- fix accidentally deleted test task
-- fix CI worflow dependcy
 
 ### v0.1.0
 

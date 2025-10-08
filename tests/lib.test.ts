@@ -4,6 +4,7 @@
 
 import { expect } from "@std/expect";
 import { buildRecord, loadConfig, readFile } from "../src/lib.ts";
+import { joinPath } from "./test_utils.ts";
 
 Deno.test("loadConfig - should load all required environment variables with RKEY", () => {
   // Set up environment
@@ -243,7 +244,7 @@ Deno.test("readFile - should read file successfully", async () => {
   const tempDir = await Deno.makeTempDir({ prefix: "putrecord_test_" });
 
   try {
-    const testFile = `${tempDir}/test-file.txt`;
+    const testFile = joinPath(tempDir, "test-file.txt");
     const testContent = "Test Content";
 
     // Create test file
