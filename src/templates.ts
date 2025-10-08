@@ -36,7 +36,6 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          cache: true
           deno-version: v2.x
 
       - name: Upload to PDS

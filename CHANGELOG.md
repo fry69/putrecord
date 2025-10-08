@@ -1,6 +1,7 @@
 ### v0.2.2
 
 - fix init tests on Windows
+- remove cache option from workflow
 
 ### v0.2.1
 
