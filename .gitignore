@@ -19,3 +19,7 @@ Thumbs.db
 *.test.md
 test-*.md
 *-temp*.md
+
+# End-2-End test credentials
+.env.e2e
+
