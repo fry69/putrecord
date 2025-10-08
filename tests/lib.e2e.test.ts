@@ -127,13 +127,15 @@ if (hasE2EConfig) {
 
   Deno.test("E2E: Create new record without RKEY", async () => {
     const { client, identifier } = await setupClient();
-
-    // Create test file
-    const testFile = "./test-e2e-create.md";
-    const testContent = `# E2E Test - Create Mode\n\nTimestamp: ${Date.now()}`;
-    await Deno.writeTextFile(testFile, testContent);
+    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
 
     try {
+      // Create test file in temp directory
+      const testFile = `${tempDir}/test-create.md`;
+      const testContent =
+        `# E2E Test - Create Mode\n\nTimestamp: ${Date.now()}`;
+      await Deno.writeTextFile(testFile, testContent);
+
       // Setup config for create mode (no RKEY)
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
@@ -172,8 +174,8 @@ if (hasE2EConfig) {
       await deleteRecord(client, identifier, config.collection, result.rkey);
       console.log(`  Cleaned up record: ${result.rkey}`);
     } finally {
-      // Cleanup test file
-      await Deno.remove(testFile).catch(() => {});
+      // Cleanup temp directory and all files
+      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
     }
@@ -181,15 +183,17 @@ if (hasE2EConfig) {
 
   Deno.test("E2E: Update existing record with RKEY", async () => {
     const { client, identifier } = await setupClient();
-
-    // Create test file
-    const testFile = "./test-e2e-update.md";
-    const initialContent = `# E2E Test - Update Mode\n\nInitial: ${Date.now()}`;
-    await Deno.writeTextFile(testFile, initialContent);
+    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
 
     let createdRkey = "";
 
     try {
+      // Create test file in temp directory
+      const testFile = `${tempDir}/test-update.md`;
+      const initialContent =
+        `# E2E Test - Update Mode\n\nInitial: ${Date.now()}`;
+      await Deno.writeTextFile(testFile, initialContent);
+
       // Setup config
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
@@ -250,8 +254,8 @@ if (hasE2EConfig) {
       await deleteRecord(client, identifier, config.collection, createdRkey);
       console.log(`  Cleaned up record: ${createdRkey}`);
     } finally {
-      // Cleanup test file
-      await Deno.remove(testFile).catch(() => {});
+      // Cleanup temp directory and all files
+      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
       Deno.env.delete("RKEY");
@@ -260,12 +264,13 @@ if (hasE2EConfig) {
 
   Deno.test("E2E: uploadRecord should fail without RKEY", async () => {
     const { client } = await setupClient();
-
-    const testFile = "./test-e2e-fail.md";
-    const testContent = "# Test Content";
-    await Deno.writeTextFile(testFile, testContent);
+    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
 
     try {
+      const testFile = `${tempDir}/test-fail.md`;
+      const testContent = "# Test Content";
+      await Deno.writeTextFile(testFile, testContent);
+
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
       Deno.env.delete("RKEY");
@@ -278,7 +283,7 @@ if (hasE2EConfig) {
         "RKEY is required for updating records",
       );
     } finally {
-      await Deno.remove(testFile).catch(() => {});
+      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
     }

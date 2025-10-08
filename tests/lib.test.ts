@@ -117,18 +117,20 @@ Deno.test("buildRecord - should wrap JSON without $type", () => {
 });
 
 Deno.test("readFile - should read file successfully", async () => {
-  const testFile = "./test-temp.txt";
-  const testContent = "Test Content";
-
-  // Create test file
-  await Deno.writeTextFile(testFile, testContent);
+  const tempDir = await Deno.makeTempDir({ prefix: "putrecord_test_" });
 
   try {
+    const testFile = `${tempDir}/test-file.txt`;
+    const testContent = "Test Content";
+
+    // Create test file
+    await Deno.writeTextFile(testFile, testContent);
+
     const content = await readFile(testFile);
     expect(content).toBe(testContent);
   } finally {
     // Cleanup
-    await Deno.remove(testFile);
+    await Deno.remove(tempDir, { recursive: true }).catch(() => {});
   }
 });
 
