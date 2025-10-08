@@ -1,6 +1,6 @@
-# atproto-push
+# putrecord
 
-Upload markdown files as AT Protocol records to a PDS. Built with
+Upload files as AT Protocol records to a PDS. Built with
 [atcute](https://github.com/mary-ext/atcute) and Deno.
 
 ## Configuration

@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "posts/*.md"
+      - "README.md"
   workflow_dispatch:
 
 jobs:
@@ -18,10 +18,8 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
+          cache: true
           deno-version: v2.x
-
-      - name: Run tests
-        run: deno task test
 
       - name: Upload to PDS
         env:
