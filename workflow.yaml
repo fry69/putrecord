@@ -1,3 +1,5 @@
+# Example GitHub Actions workflow for automatic PDS uploads
+# Copy this file to .github/workflows/ in your repository to use it
 name: Upload to PDS
 
 on:

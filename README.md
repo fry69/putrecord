@@ -6,6 +6,40 @@ Upload files as AT Protocol records to a PDS. Built with
 **Content-neutral**: Works with any AT Protocol collection and content type. No
 assumptions about file format or lexicon schema.
 
+## Installation
+
+### As a CLI Tool
+
+```bash
+# Run directly with Deno
+deno run -A jsr:@fry69/putrecord
+```
+
+### As a Library
+
+```typescript
+// Import from JSR
+import { buildRecord, createRecord, uploadRecord } from "jsr:@fry69/putrecord";
+```
+
+Or add to your `deno.json`:
+
+```json
+{
+  "imports": {
+    "@fry69/putrecord": "jsr:@fry69/putrecord@^0.1.0"
+  }
+}
+```
+
+### Clone from GitHub
+
+```bash
+git clone https://github.com/fry69/putrecord.git
+cd putrecord
+deno task upload
+```
+
 ## Two Modes of Operation
 
 ### Create Mode (Manual)
@@ -121,17 +155,35 @@ The script will use this structure as-is for your record.
 
 ### GitHub Actions (Automated Updates)
 
-Upload secrets to repository:
+To automate uploads via GitHub Actions:
+
+1. **Copy the example workflow** to your repository:
 
 ```bash
-# Using GitHub CLI
+mkdir -p .github/workflows
+cp workflow.yaml .github/workflows/putrecord.yaml
+```
+
+2. **Configure repository secrets** using GitHub CLI:
+
+```bash
+# Set all secrets from your .env file
 gh secret set -f .env
 
 # Or using deno task
 deno task secrets
 ```
 
-Then push changes to trigger upload.
+Or manually via GitHub web interface: Settings → Secrets and variables → Actions
+
+3. **Customize the workflow** (optional):
+
+   - Edit `.github/workflows/putrecord.yaml`
+   - Modify trigger conditions (branches, paths, schedule, etc.)
+   - Add additional steps as needed
+
+4. **Push to trigger**: Changes pushed to your main branch will automatically
+   upload to PDS.
 
 ## Testing
 
@@ -186,6 +238,16 @@ auto-generated RKEY.
 
 Updates an existing record via `com.atproto.repo.putRecord`. Requires RKEY in
 config.
+
+## Repository Files
+
+- **`main.ts`** - Main script with upload logic
+- **`main.test.ts`** - Unit tests
+- **`main.e2e.test.ts`** - End-to-end integration tests
+- **`workflow.yaml`** - Example GitHub Actions workflow (copy to
+  `.github/workflows/` to use)
+- **`.env.example`** - Example environment configuration
+- **`deno.json`** - Deno configuration with tasks and dependencies
 
 ## License
 
