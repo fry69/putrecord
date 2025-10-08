@@ -270,11 +270,30 @@ Or manually via GitHub web interface: Settings → Secrets and variables → Act
 
 ### Unit Tests
 
+Run all unit tests (library + init command):
+
+```bash
+deno task test:unit
+```
+
+Run only library tests:
+
 ```bash
 deno task test
 ```
 
-Unit tests cover basic functionality and error handling.
+Run only init command tests:
+
+```bash
+deno task test:init
+```
+
+Unit tests cover:
+
+- **Library functions** (`tests/lib.test.ts`): Configuration loading, record
+  building, file reading
+- **Init command** (`tests/init.test.ts`): File creation, directory setup,
+  --force flag behavior
 
 ### End-to-End Tests
 
@@ -291,6 +310,14 @@ These tests verify:
 - Error handling
 
 The E2E tests automatically clean up created records.
+
+### Run All Tests
+
+```bash
+deno task test:all
+```
+
+This runs all unit tests and E2E tests (if configured).
 
 ## Library API
 
@@ -359,6 +386,7 @@ config.
 - **`src/lib.ts`** - Library module with core functions (no console output)
 - **`src/templates.ts`** - Inlined templates for init command
 - **`tests/lib.test.ts`** - Unit tests for library functions
+- **`tests/init.test.ts`** - Unit tests for init command
 - **`tests/lib.e2e.test.ts`** - End-to-end integration tests
 - **`workflow.yaml`** - Example GitHub Actions workflow (reference copy)
 - **`.env.example`** - Example environment configuration (reference copy)
@@ -372,6 +400,7 @@ config.
 offline support. When updating templates, you must update **both** locations:
 
 1. **Inlined templates** in `src/templates.ts`:
+
    - `WORKFLOW_TEMPLATE` - GitHub Actions workflow
    - `ENV_EXAMPLE_TEMPLATE` - Environment configuration
 
