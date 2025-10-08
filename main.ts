@@ -16,12 +16,13 @@ interface Config {
   identifier: string; // Handle or DID
   password: string; // App password
   collection: string; // e.g., "com.whtwnd.blog.entry"
-  rkey: string; // Record key
+  rkey?: string; // Record key (optional - if not provided, creates new record)
   filePath: string; // Path to file to upload
 }
 
 /**
  * Load and validate configuration from environment
+ * RKEY is optional - if not provided, a new record will be created
  */
 function loadConfig(): Config {
   const required = [
@@ -29,7 +30,6 @@ function loadConfig(): Config {
     "IDENTIFIER",
     "APP_PASSWORD",
     "COLLECTION",
-    "RKEY",
     "FILE_PATH",
   ];
 
@@ -39,12 +39,14 @@ function loadConfig(): Config {
     }
   }
 
+  const rkey = Deno.env.get("RKEY");
+
   return {
     pdsUrl: Deno.env.get("PDS_URL")!,
     identifier: Deno.env.get("IDENTIFIER")!,
     password: Deno.env.get("APP_PASSWORD")!,
     collection: Deno.env.get("COLLECTION")!,
-    rkey: Deno.env.get("RKEY")!,
+    rkey: rkey || undefined,
     filePath: Deno.env.get("FILE_PATH")!,
   };
 }
@@ -73,13 +75,46 @@ function createBlogRecord(content: string): Record<string, unknown> {
 }
 
 /**
- * Upload record to PDS
+ * Create a new record in PDS (generates rkey automatically)
+ */
+async function createRecord(
+  client: Client,
+  config: Config,
+  record: Record<string, unknown>,
+): Promise<{ uri: string; cid: string; rkey: string }> {
+  const response = await ok(
+    client.post("com.atproto.repo.createRecord", {
+      input: {
+        repo: config.identifier as ActorIdentifier,
+        collection: config.collection as Nsid,
+        record,
+      },
+    }),
+  );
+
+  // Extract rkey from URI (format: at://did:plc:.../collection/rkey)
+  const rkey = response.uri.split("/").pop() || "";
+
+  console.log(`✓ Record created successfully`);
+  console.log(`  URI: ${response.uri}`);
+  console.log(`  CID: ${response.cid}`);
+  console.log(`  RKEY: ${rkey}`);
+
+  return { uri: response.uri, cid: response.cid, rkey };
+}
+
+/**
+ * Update an existing record in PDS (requires rkey)
  */
 async function uploadRecord(
   client: Client,
   config: Config,
   record: Record<string, unknown>,
 ): Promise<{ uri: string; cid: string }> {
+  if (!config.rkey) {
+    throw new Error("RKEY is required for updating records");
+  }
+
   const response = await ok(
     client.post("com.atproto.repo.putRecord", {
       input: {
@@ -91,7 +126,7 @@ async function uploadRecord(
     }),
   );
 
-  console.log(`✓ Record uploaded successfully`);
+  console.log(`✓ Record updated successfully`);
   console.log(`  URI: ${response.uri}`);
   console.log(`  CID: ${response.cid}`);
 
@@ -123,14 +158,28 @@ async function main() {
     });
     console.log("✓ Authentication successful");
 
-    // Create and upload record
+    // Create blog entry record
     console.log(`Creating blog entry record...`);
     const record = createBlogRecord(content);
 
-    console.log(`Uploading to ${config.collection}/${config.rkey}...`);
-    await uploadRecord(client, config, record);
-
-    console.log("\n✓ Upload complete!");
+    // Upload or create record based on whether RKEY is provided
+    if (config.rkey) {
+      console.log(
+        `Updating existing record: ${config.collection}/${config.rkey}...`,
+      );
+      await uploadRecord(client, config, record);
+      console.log("\n✓ Record updated successfully!");
+    } else {
+      console.log(`Creating new record in ${config.collection}...`);
+      const result = await createRecord(client, config, record);
+      console.log("\n✓ New record created successfully!");
+      console.log(
+        `\n⚠️  Save this RKEY for future updates: ${result.rkey}`,
+      );
+      console.log(
+        `   Add to your .env file: RKEY=${result.rkey}`,
+      );
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("\n✗ Error:", message);
@@ -139,7 +188,7 @@ async function main() {
 }
 
 // Export functions for testing
-export { createBlogRecord, loadConfig, readFile, uploadRecord };
+export { createBlogRecord, createRecord, loadConfig, readFile, uploadRecord };
 
 // Run if executed directly
 if (import.meta.main) {

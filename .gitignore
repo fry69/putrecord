@@ -19,6 +19,8 @@ Thumbs.db
 *.test.md
 test-*.md
 *-temp*.md
+test-e2e-*.md
+*-temp*.txt
 
 # End-2-End test credentials
 .env.e2e

@@ -2,7 +2,9 @@
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check main.ts",
     "upload": "deno run --allow-net --allow-env --allow-read main.ts",
-    "test": "deno test --allow-net --allow-env --allow-read --allow-write",
+    "test": "deno test --allow-net --allow-env --allow-read --allow-write main.test.ts",
+    "test:e2e": "deno test --allow-net --allow-env --allow-read --allow-write main.e2e.test.ts",
+    "test:all": "deno test --allow-net --allow-env --allow-read --allow-write",
     "secrets": "gh secret set -f .env"
   },
   "imports": {
