@@ -7,6 +7,7 @@
 - preserve existing properties/fields by default (e.g. title/visibility)
 - add end to end tests for WhiteWind support incl. CLI
 - document end to end tests
+- cleanup tasks
 
 ### v0.1.0
 
