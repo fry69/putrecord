@@ -106,10 +106,33 @@ deno run -A jsr:@fry69/putrecord
 Works with any content type:
 
 - **JSON with `$type`**: Used as-is for custom lexicon schemas
+- **WhiteWind blog entries** (`com.whtwnd.blog.entry`): Automatically creates
+  proper blog records with `visibility: "public"` and extracts title from
+  markdown
 - **Plain text**: Wrapped in a generic record structure with `$type`, `content`,
   and `createdAt`
 
-Example custom JSON record:
+**WhiteWind Blog Example:**
+
+```markdown
+# My Blog Post
+
+This is my blog content in markdown format.
+```
+
+Automatically becomes:
+
+```json
+{
+  "$type": "com.whtwnd.blog.entry",
+  "content": "# My Blog Post\n\nThis is my blog content...",
+  "title": "My Blog Post",
+  "visibility": "public",
+  "createdAt": "2025-10-08T..."
+}
+```
+
+**Custom JSON Example:**
 
 ```json
 {
@@ -151,6 +174,12 @@ gh secret set -f .env
 ```
 
 See [GitHub Actions Guide](docs/GITHUB_ACTIONS.md) for detailed setup.
+
+## Example Repository
+
+See **[putrecord-test](https://github.com/fry69/putrecord-test)** - A working
+example that demonstrates automated uploads using GitHub Actions. The repository
+automatically updates its README on every push and uploads it to a PDS.
 
 ## Documentation
 

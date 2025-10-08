@@ -117,6 +117,8 @@ content types.
 **Behavior:**
 
 - If content is valid JSON with a `$type` field: Uses the parsed JSON as-is
+- For WhiteWind blog entries (`com.whtwnd.blog.entry`): Creates proper blog
+  record with required `visibility` field and extracts title from markdown
 - Otherwise: Wraps content in a structure with `$type`, `content`, and
   `createdAt` fields
 
@@ -132,6 +134,21 @@ const record = buildRecord("com.example.note", "My note content");
 // {
 //   $type: "com.example.note",
 //   content: "My note content",
+//   createdAt: "2025-10-08T10:30:00.000Z"
+// }
+```
+
+**WhiteWind Blog Entry (Special Handling):**
+
+```typescript
+const markdown = "# My Blog Post\n\nThis is the content.";
+const record = buildRecord("com.whtwnd.blog.entry", markdown);
+// Returns:
+// {
+//   $type: "com.whtwnd.blog.entry",
+//   content: "# My Blog Post\n\nThis is the content.",
+//   title: "My Blog Post",
+//   visibility: "public",
 //   createdAt: "2025-10-08T10:30:00.000Z"
 // }
 ```

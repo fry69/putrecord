@@ -397,6 +397,46 @@ Your content will now update automatically on every push!
 
 ## Examples
 
+### WhiteWind Blog Automation
+
+Automatically publish to [WhiteWind](https://whtwnd.com/) blog from markdown
+files:
+
+```yaml
+name: Publish to WhiteWind
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "posts/*.md"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Upload to WhiteWind
+        env:
+          PDS_URL: ${{ secrets.PDS_URL }}
+          IDENTIFIER: ${{ secrets.IDENTIFIER }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          COLLECTION: com.whtwnd.blog.entry
+          RKEY: ${{ secrets.RKEY }}
+          FILE_PATH: ./posts/latest.md
+        run: deno run -A jsr:@fry69/putrecord --quiet
+```
+
+**Note:** putrecord automatically creates proper WhiteWind blog entries with
+`visibility: "public"` and extracts the title from your markdown's first `#`
+heading. See [putrecord-test](https://github.com/fry69/putrecord-test) for a
+working example.
+
 ### Blog Post Automation
 
 Automatically publish blog posts from Markdown:

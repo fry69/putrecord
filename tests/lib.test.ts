@@ -116,6 +116,53 @@ Deno.test("buildRecord - should wrap JSON without $type", () => {
   expect(typeof record.createdAt).toBe("string");
 });
 
+Deno.test("buildRecord - should handle WhiteWind blog entry with title", () => {
+  const collection = "com.whtwnd.blog.entry";
+  const markdown = "# My Blog Post\n\nThis is the content of my blog post.";
+
+  const record = buildRecord(collection, markdown);
+
+  expect(record.$type).toBe("com.whtwnd.blog.entry");
+  expect(record.content).toBe(markdown);
+  expect(record.visibility).toBe("public");
+  expect(record.title).toBe("My Blog Post");
+  expect(typeof record.createdAt).toBe("string");
+});
+
+Deno.test("buildRecord - should handle WhiteWind blog entry without title", () => {
+  const collection = "com.whtwnd.blog.entry";
+  const markdown = "Just some content without a heading.";
+
+  const record = buildRecord(collection, markdown);
+
+  expect(record.$type).toBe("com.whtwnd.blog.entry");
+  expect(record.content).toBe(markdown);
+  expect(record.visibility).toBe("public");
+  expect(record.title).toBeUndefined();
+  expect(typeof record.createdAt).toBe("string");
+});
+
+Deno.test("buildRecord - should respect WhiteWind JSON with custom visibility", () => {
+  const collection = "com.whtwnd.blog.entry";
+  const jsonContent = JSON.stringify({
+    $type: "com.whtwnd.blog.entry",
+    content: "# Custom Post",
+    visibility: "author", // Custom visibility
+    title: "Custom Title",
+    theme: "dark",
+    createdAt: "2025-01-01T00:00:00.000Z",
+  });
+
+  const record = buildRecord(collection, jsonContent);
+
+  // Should use the JSON as-is since it has $type
+  expect(record.$type).toBe("com.whtwnd.blog.entry");
+  expect(record.visibility).toBe("author");
+  expect(record.title).toBe("Custom Title");
+  expect(record.theme).toBe("dark");
+  expect(record.createdAt).toBe("2025-01-01T00:00:00.000Z");
+});
+
 Deno.test("readFile - should read file successfully", async () => {
   const tempDir = await Deno.makeTempDir({ prefix: "putrecord_test_" });
 

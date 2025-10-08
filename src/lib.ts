@@ -128,10 +128,22 @@ async function readFile(path: string): Promise<string> {
 }
 
 /**
+ * Extract title from markdown content (first # heading).
+ * @param content Markdown content
+ * @returns Title string or undefined if no heading found
+ */
+function extractMarkdownTitle(content: string): string | undefined {
+  const match = content.match(/^#\s+(.+)$/m);
+  return match ? match[1].trim() : undefined;
+}
+
+/**
  * Build an AT Protocol record from file content.
  *
  * This function intelligently handles different content types:
  * - If content is valid JSON with a `$type` field, it uses the JSON as-is
+ * - For WhiteWind blog entries (com.whtwnd.blog.entry), it creates a proper
+ *   blog record with required `visibility` field and optional `title`
  * - Otherwise, it wraps the content in a simple structure with `$type`,
  *   `content`, and `createdAt` fields
  *
@@ -146,6 +158,19 @@ async function readFile(path: string): Promise<string> {
  * ```ts
  * const record = buildRecord("com.example.note", "My note text");
  * // Returns: { $type: "com.example.note", content: "My note text", createdAt: "..." }
+ * ```
+ *
+ * @example WhiteWind blog entry (automatic handling)
+ * ```ts
+ * const markdown = "# My Blog Post\n\nContent here";
+ * const record = buildRecord("com.whtwnd.blog.entry", markdown);
+ * // Returns: {
+ * //   $type: "com.whtwnd.blog.entry",
+ * //   content: "# My Blog Post\n\nContent here",
+ * //   title: "My Blog Post",
+ * //   visibility: "public",
+ * //   createdAt: "..."
+ * // }
  * ```
  *
  * @example Custom JSON schema
@@ -174,10 +199,28 @@ function buildRecord(
       return parsed as Record<string, unknown>;
     }
   } catch {
-    // Not JSON, continue with simple structure
+    // Not JSON, continue with collection-specific handling
   }
 
-  // Create a simple generic record
+  // Special handling for WhiteWind blog entries
+  if (collection === "com.whtwnd.blog.entry") {
+    const title = extractMarkdownTitle(content);
+    const record: Record<string, unknown> = {
+      $type: collection,
+      content,
+      visibility: "public", // Default to public visibility
+      createdAt: new Date().toISOString(),
+    };
+
+    // Add title if extracted from markdown
+    if (title) {
+      record.title = title;
+    }
+
+    return record;
+  }
+
+  // Create a simple generic record for other collections
   return {
     $type: collection,
     content,

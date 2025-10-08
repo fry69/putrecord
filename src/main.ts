@@ -18,7 +18,7 @@ import {
 } from "../src/lib.ts";
 import { ENV_EXAMPLE_TEMPLATE, WORKFLOW_TEMPLATE } from "./templates.ts";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 /**
  * Print help message
