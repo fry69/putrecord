@@ -194,21 +194,13 @@ export async function runCLI(
 // E2E Test Utilities for AT Protocol / PDS Operations
 // ============================================================================
 //
-// The functions below are THIN WRAPPERS around AT Protocol API calls.
-// They exist to:
-// 1. Eliminate duplication of authentication and API call boilerplate
-// 2. Provide consistent error handling for test setup/cleanup
-// 3. Keep E2E tests focused on testing business logic, not API mechanics
-//
-// These are NOT complex abstractions - they're transparent helpers that
-// directly map to com.atproto.repo.* API calls. The actual API calls are
-// visible in the implementation and tests remain understandable.
+// setupE2EClient() handles authentication boilerplate so E2E tests don't need
+// to repeat credential manager and login logic. Tests should make AT Protocol
+// API calls directly using the returned client to keep test intent clear.
 // ============================================================================
 
 // Import AT Protocol types only when this module is used in E2E tests
 import type { Client } from "@atcute/client";
-import type {} from "@atcute/atproto";
-import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
 
 /**
  * Setup an authenticated AT Protocol client using environment variables.
@@ -252,131 +244,4 @@ export async function setupE2EClient(
   });
 
   return { client, identifier };
-}
-
-/**
- * Delete a record from the PDS (for test cleanup).
- *
- * This is a thin wrapper around com.atproto.repo.deleteRecord that:
- * - Swallows errors (safe for cleanup - record might not exist)
- * - Handles type conversions for lexicons
- *
- * Ignores errors - safe to call even if record doesn't exist.
- *
- * @param client - Authenticated AT Protocol client
- * @param identifier - Actor identifier (DID or handle)
- * @param collection - Collection NSID (e.g., "com.whtwnd.blog.entry")
- * @param rkey - Record key
- *
- * @example
- * ```ts
- * // Cleanup helper - thin wrapper around com.atproto.repo.deleteRecord
- * await deleteE2ERecord(client, identifier, "com.whtwnd.blog.entry", "abc123");
- * ```
- */
-export async function deleteE2ERecord(
-  client: Client,
-  identifier: string,
-  collection: string,
-  rkey: string,
-): Promise<void> {
-  try {
-    const { ok } = await import("@atcute/client");
-    await ok(
-      client.post("com.atproto.repo.deleteRecord", {
-        input: {
-          repo: identifier as ActorIdentifier,
-          collection: collection as Nsid,
-          rkey,
-        },
-      }),
-    );
-  } catch (_error) {
-    // Ignore errors during cleanup - record might not exist
-  }
-}
-
-/**
- * Retrieve a record from the PDS.
- *
- * This is a thin wrapper around com.atproto.repo.getRecord that:
- * - Handles type conversions for lexicons
- * - Returns the record in a consistent format
- *
- * @param client - Authenticated AT Protocol client
- * @param identifier - Actor identifier (DID or handle)
- * @param collection - Collection NSID (e.g., "com.whtwnd.blog.entry")
- * @param rkey - Record key
- * @returns The record response with value property
- *
- * @example
- * ```ts
- * // Thin wrapper around com.atproto.repo.getRecord
- * const record = await getE2ERecord(client, identifier, "com.whtwnd.blog.entry", "abc123");
- * expect(record.value.title).toBe("My Blog Post");
- * ```
- */
-export async function getE2ERecord(
-  client: Client,
-  identifier: string,
-  collection: string,
-  rkey: string,
-): Promise<{ value: Record<string, unknown> }> {
-  const { ok } = await import("@atcute/client");
-  const response = await ok(
-    client.get("com.atproto.repo.getRecord", {
-      params: {
-        repo: identifier as ActorIdentifier,
-        collection: collection as Nsid,
-        rkey,
-      },
-    }),
-  );
-  return response as { value: Record<string, unknown> };
-}
-
-/**
- * Update a record on the PDS (putRecord operation).
- *
- * This is a thin wrapper around com.atproto.repo.putRecord for test setup.
- * Used to manually modify records before testing library behavior (e.g., set
- * custom title/visibility to verify preservation logic).
- *
- * Note: This is NOT testing the putRecord API itself - it's used to SET UP
- * test state before testing the actual library functions.
- *
- * @param client - Authenticated AT Protocol client
- * @param identifier - Actor identifier (DID or handle)
- * @param collection - Collection NSID (e.g., "com.whtwnd.blog.entry")
- * @param rkey - Record key
- * @param record - The record object to save
- *
- * @example
- * ```ts
- * // Set up test state - thin wrapper around com.atproto.repo.putRecord
- * await updateE2ERecord(client, identifier, "com.whtwnd.blog.entry", "abc123", {
- *   ...existingRecord,
- *   title: "Custom Title",
- *   visibility: "author",
- * });
- * ```
- */
-export async function updateE2ERecord(
-  client: Client,
-  identifier: string,
-  collection: string,
-  rkey: string,
-  record: Record<string, unknown>,
-): Promise<void> {
-  const { ok } = await import("@atcute/client");
-  await ok(
-    client.post("com.atproto.repo.putRecord", {
-      input: {
-        repo: identifier as ActorIdentifier,
-        collection: collection as Nsid,
-        rkey,
-        record,
-      },
-    }),
-  );
 }

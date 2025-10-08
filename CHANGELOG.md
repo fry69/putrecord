@@ -3,8 +3,9 @@
 - fix accidentally deleted test task
 - fix CI worflow dependcy
 - fix init tests failing on Windows
-- created test utility library
-- reduced unnecessary test helper abstrations
+- create test utility library
+- reduce unnecessary test helper abstrations
+- remove too thin e2e test helper wrappers
 
 ### v0.2.0
 

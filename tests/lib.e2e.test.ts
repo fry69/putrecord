@@ -4,16 +4,14 @@
  * These tests run against a real PDS using credentials from .env.e2e
  * They only run if .env.e2e exists.
  *
- * Note on test helpers:
- * - setupE2EClient(): Authentication boilerplate wrapper
- * - getE2ERecord/deleteE2ERecord/updateE2ERecord(): Thin AT Protocol API wrappers
- *
- * These helpers eliminate duplication but remain transparent - they directly
- * map to com.atproto.repo.* API calls. The goal is to keep tests focused on
- * testing library logic, not AT Protocol API mechanics.
+ * Note: setupE2EClient() is used to handle authentication boilerplate.
+ * All AT Protocol API calls (getRecord, deleteRecord, putRecord) are made
+ * directly in tests to keep test intent clear and visible.
  */
 
 import { expect } from "@std/expect";
+import { ok } from "@atcute/client";
+import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
 import {
   buildRecord,
   createRecord,
@@ -24,8 +22,6 @@ import {
 import {
   cleanupTestDir,
   createTestDir,
-  deleteE2ERecord,
-  getE2ERecord,
   joinPath,
   loadE2EConfig,
   setupE2EClient,
@@ -75,11 +71,14 @@ if (envVars) {
       await wait(1000);
 
       // Verify record exists by retrieving it
-      const retrieved = await getE2ERecord(
-        client,
-        identifier,
-        config.collection,
-        result.rkey,
+      const retrieved = await ok(
+        client.get("com.atproto.repo.getRecord", {
+          params: {
+            repo: identifier as ActorIdentifier,
+            collection: config.collection as Nsid,
+            rkey: result.rkey,
+          },
+        }),
       );
       expect(retrieved.value).toBeTruthy();
       expect((retrieved.value as { content: string }).content).toBe(
@@ -87,7 +86,19 @@ if (envVars) {
       );
 
       // Cleanup: Delete the created record
-      await deleteE2ERecord(client, identifier, config.collection, result.rkey);
+      try {
+        await ok(
+          client.post("com.atproto.repo.deleteRecord", {
+            input: {
+              repo: identifier as ActorIdentifier,
+              collection: config.collection as Nsid,
+              rkey: result.rkey,
+            },
+          }),
+        );
+      } catch {
+        // Ignore cleanup errors
+      }
       console.log(`  Cleaned up record: ${result.rkey}`);
     } finally {
       // Cleanup temp directory and all files
@@ -157,11 +168,14 @@ if (envVars) {
       await wait(1000);
 
       // Verify the record was updated
-      const retrieved = await getE2ERecord(
-        client,
-        identifier,
-        config.collection,
-        createdRkey,
+      const retrieved = await ok(
+        client.get("com.atproto.repo.getRecord", {
+          params: {
+            repo: identifier as ActorIdentifier,
+            collection: config.collection as Nsid,
+            rkey: createdRkey,
+          },
+        }),
       );
       expect((retrieved.value as { content: string }).content).toBe(
         updatedContent,
@@ -170,7 +184,19 @@ if (envVars) {
       console.log(`  Successfully updated record: ${createdRkey}`);
 
       // Cleanup
-      await deleteE2ERecord(client, identifier, config.collection, createdRkey);
+      try {
+        await ok(
+          client.post("com.atproto.repo.deleteRecord", {
+            input: {
+              repo: identifier as ActorIdentifier,
+              collection: config.collection as Nsid,
+              rkey: createdRkey,
+            },
+          }),
+        );
+      } catch {
+        // Ignore cleanup errors
+      }
       console.log(`  Cleaned up record: ${createdRkey}`);
     } finally {
       // Cleanup temp directory and all files
@@ -249,11 +275,14 @@ if (envVars) {
       await wait(1000);
 
       // Verify the record
-      const retrieved = await getE2ERecord(
-        client,
-        identifier,
-        config.collection,
-        result.rkey,
+      const retrieved = await ok(
+        client.get("com.atproto.repo.getRecord", {
+          params: {
+            repo: identifier as ActorIdentifier,
+            collection: config.collection as Nsid,
+            rkey: result.rkey,
+          },
+        }),
       );
       expect((retrieved.value as { visibility: string }).visibility).toBe(
         "public",
@@ -263,7 +292,19 @@ if (envVars) {
       );
 
       // Cleanup
-      await deleteE2ERecord(client, identifier, config.collection, result.rkey);
+      try {
+        await ok(
+          client.post("com.atproto.repo.deleteRecord", {
+            input: {
+              repo: identifier as ActorIdentifier,
+              collection: config.collection as Nsid,
+              rkey: result.rkey,
+            },
+          }),
+        );
+      } catch {
+        // Ignore cleanup errors
+      }
       console.log(`  Cleaned up record: ${result.rkey}`);
     } finally {
       await cleanupTestDir(tempDir);
@@ -305,11 +346,14 @@ if (envVars) {
       await wait(1000);
 
       // Verify custom title was saved
-      const beforeUpdate = await getE2ERecord(
-        client,
-        identifier,
-        config.collection,
-        createdRkey,
+      const beforeUpdate = await ok(
+        client.get("com.atproto.repo.getRecord", {
+          params: {
+            repo: identifier as ActorIdentifier,
+            collection: config.collection as Nsid,
+            rkey: createdRkey,
+          },
+        }),
       );
       expect((beforeUpdate.value as { title: string }).title).toBe(
         "My Custom Title",
@@ -327,11 +371,14 @@ if (envVars) {
       const existingRecord = await (async () => {
         if (!updateConfig.rkey) return undefined;
         try {
-          const response = await getE2ERecord(
-            client,
-            identifier,
-            updateConfig.collection,
-            updateConfig.rkey,
+          const response = await ok(
+            client.get("com.atproto.repo.getRecord", {
+              params: {
+                repo: identifier as ActorIdentifier,
+                collection: updateConfig.collection as Nsid,
+                rkey: updateConfig.rkey,
+              },
+            }),
           );
           return response.value as Record<string, unknown>;
         } catch {
@@ -360,11 +407,14 @@ if (envVars) {
       await wait(1000);
 
       // Verify title was preserved
-      const afterUpdate = await getE2ERecord(
-        client,
-        identifier,
-        config.collection,
-        createdRkey,
+      const afterUpdate = await ok(
+        client.get("com.atproto.repo.getRecord", {
+          params: {
+            repo: identifier as ActorIdentifier,
+            collection: config.collection as Nsid,
+            rkey: createdRkey,
+          },
+        }),
       );
       expect((afterUpdate.value as { title: string }).title).toBe(
         "My Custom Title",
@@ -376,7 +426,19 @@ if (envVars) {
       console.log(`  ✓ Custom title preserved after update`);
 
       // Cleanup
-      await deleteE2ERecord(client, identifier, config.collection, createdRkey);
+      try {
+        await ok(
+          client.post("com.atproto.repo.deleteRecord", {
+            input: {
+              repo: identifier as ActorIdentifier,
+              collection: config.collection as Nsid,
+              rkey: createdRkey,
+            },
+          }),
+        );
+      } catch {
+        // Ignore cleanup errors
+      }
       console.log(`  Cleaned up record: ${createdRkey}`);
     } finally {
       await cleanupTestDir(tempDir);
@@ -418,11 +480,14 @@ if (envVars) {
       await wait(1000);
 
       // Verify custom visibility was saved
-      const beforeUpdate = await getE2ERecord(
-        client,
-        identifier,
-        config.collection,
-        createdRkey,
+      const beforeUpdate = await ok(
+        client.get("com.atproto.repo.getRecord", {
+          params: {
+            repo: identifier as ActorIdentifier,
+            collection: config.collection as Nsid,
+            rkey: createdRkey,
+          },
+        }),
       );
       expect((beforeUpdate.value as { visibility: string }).visibility).toBe(
         "author",
@@ -440,11 +505,14 @@ if (envVars) {
       const existingRecord = await (async () => {
         if (!updateConfig.rkey) return undefined;
         try {
-          const response = await getE2ERecord(
-            client,
-            identifier,
-            updateConfig.collection,
-            updateConfig.rkey,
+          const response = await ok(
+            client.get("com.atproto.repo.getRecord", {
+              params: {
+                repo: identifier as ActorIdentifier,
+                collection: updateConfig.collection as Nsid,
+                rkey: updateConfig.rkey,
+              },
+            }),
           );
           return response.value as Record<string, unknown>;
         } catch {
@@ -473,11 +541,14 @@ if (envVars) {
       await wait(1000);
 
       // Verify visibility was preserved
-      const afterUpdate = await getE2ERecord(
-        client,
-        identifier,
-        config.collection,
-        createdRkey,
+      const afterUpdate = await ok(
+        client.get("com.atproto.repo.getRecord", {
+          params: {
+            repo: identifier as ActorIdentifier,
+            collection: config.collection as Nsid,
+            rkey: createdRkey,
+          },
+        }),
       );
       expect((afterUpdate.value as { visibility: string }).visibility).toBe(
         "author",
@@ -486,7 +557,19 @@ if (envVars) {
       console.log(`  ✓ Custom visibility preserved after update`);
 
       // Cleanup
-      await deleteE2ERecord(client, identifier, config.collection, createdRkey);
+      try {
+        await ok(
+          client.post("com.atproto.repo.deleteRecord", {
+            input: {
+              repo: identifier as ActorIdentifier,
+              collection: config.collection as Nsid,
+              rkey: createdRkey,
+            },
+          }),
+        );
+      } catch {
+        // Ignore cleanup errors
+      }
       console.log(`  Cleaned up record: ${createdRkey}`);
     } finally {
       await cleanupTestDir(tempDir);
@@ -539,11 +622,14 @@ if (envVars) {
       const existingRecord = await (async () => {
         if (!updateConfig.rkey) return undefined;
         try {
-          const response = await getE2ERecord(
-            client,
-            identifier,
-            updateConfig.collection,
-            updateConfig.rkey,
+          const response = await ok(
+            client.get("com.atproto.repo.getRecord", {
+              params: {
+                repo: identifier as ActorIdentifier,
+                collection: updateConfig.collection as Nsid,
+                rkey: updateConfig.rkey,
+              },
+            }),
           );
           return response.value as Record<string, unknown>;
         } catch {
@@ -573,11 +659,14 @@ if (envVars) {
       await wait(1000);
 
       // Verify fields were forced to new values
-      const afterUpdate = await getE2ERecord(
-        client,
-        identifier,
-        config.collection,
-        createdRkey,
+      const afterUpdate = await ok(
+        client.get("com.atproto.repo.getRecord", {
+          params: {
+            repo: identifier as ActorIdentifier,
+            collection: config.collection as Nsid,
+            rkey: createdRkey,
+          },
+        }),
       );
       expect((afterUpdate.value as { title: string }).title).toBe("New Title");
       expect((afterUpdate.value as { visibility: string }).visibility).toBe(
@@ -589,7 +678,19 @@ if (envVars) {
       );
 
       // Cleanup
-      await deleteE2ERecord(client, identifier, config.collection, createdRkey);
+      try {
+        await ok(
+          client.post("com.atproto.repo.deleteRecord", {
+            input: {
+              repo: identifier as ActorIdentifier,
+              collection: config.collection as Nsid,
+              rkey: createdRkey,
+            },
+          }),
+        );
+      } catch {
+        // Ignore cleanup errors
+      }
       console.log(`  Cleaned up record: ${createdRkey}`);
     } finally {
       await cleanupTestDir(tempDir);
