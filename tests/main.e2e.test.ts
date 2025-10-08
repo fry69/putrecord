@@ -11,7 +11,7 @@ import {
   loadConfig,
   readFile,
   uploadRecord,
-} from "./lib.ts";
+} from "../src/lib.ts";
 import { Client, CredentialManager, ok } from "@atcute/client";
 import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
 

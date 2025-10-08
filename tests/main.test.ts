@@ -3,7 +3,7 @@
  */
 
 import { expect } from "@std/expect";
-import { buildRecord, loadConfig, readFile } from "./lib.ts";
+import { buildRecord, loadConfig, readFile } from "../src/lib.ts";
 
 Deno.test("loadConfig - should load all required environment variables with RKEY", () => {
   // Set up environment

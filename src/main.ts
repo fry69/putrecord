@@ -15,7 +15,7 @@ import {
   loadConfig,
   readFile,
   uploadRecord,
-} from "./lib.ts";
+} from "../src/lib.ts";
 
 const VERSION = "0.1.0";
 
