@@ -90,18 +90,46 @@ The script intelligently handles different content types:
 
 This allows flexibility to work with any AT Protocol collection.
 
-## CLI Options
+## CLI Commands
 
-The CLI supports the following flags:
+### Upload Command (Default)
 
-- `--quiet` - Suppress informational output (only errors are shown)
-- `--help` - Show usage information
-- `--version` - Show version number
-
-Example:
+Upload a file to PDS using environment configuration:
 
 ```bash
-# Quiet mode (useful for automation)
+deno run -A jsr:@fry69/putrecord [OPTIONS]
+```
+
+### Init Command
+
+Initialize GitHub Actions workflow and configuration files:
+
+```bash
+deno run -A jsr:@fry69/putrecord init [OPTIONS]
+```
+
+Creates:
+
+- `.github/workflows/putrecord.yaml` - GitHub Actions workflow
+- `.env.example` - Environment configuration template
+
+## CLI Options
+
+- `-q, --quiet` - Suppress informational output (only errors are shown)
+- `-f, --force` - Overwrite existing files (for init command)
+- `-h, --help` - Show usage information
+- `-v, --version` - Show version number
+
+Examples:
+
+```bash
+# Initialize project (safe - won't overwrite existing files)
+deno run -A jsr:@fry69/putrecord init
+
+# Initialize and overwrite existing files
+deno run -A jsr:@fry69/putrecord init --force
+
+# Upload with quiet mode (useful for automation)
 deno run -A jsr:@fry69/putrecord --quiet
 
 # Show help
@@ -181,18 +209,46 @@ For collections with custom schemas, provide a JSON file with the `$type` field:
 
 The script will use this structure as-is for your record.
 
+### Quick Setup with Init Command
+
+The easiest way to set up GitHub Actions automation:
+
+```bash
+# Initialize workflow and .env.example in your repository
+deno run -A jsr:@fry69/putrecord init
+```
+
+This creates:
+
+- `.github/workflows/putrecord.yaml` - GitHub Actions workflow
+- `.env.example` - Configuration template
+
+Then configure your secrets and you're ready to go!
+
 ### GitHub Actions (Automated Updates)
 
 To automate uploads via GitHub Actions:
 
-1. **Copy the example workflow** to your repository:
+**Option 1: Using the init command (recommended)**
 
 ```bash
+# Initialize project files
+deno run -A jsr:@fry69/putrecord init
+
+# Copy .env.example to .env and configure
+cp .env.example .env
+# Edit .env with your credentials
+```
+
+**Option 2: Manual setup**
+
+```bash
+# Copy workflow from repository
 mkdir -p .github/workflows
 cp workflow.yaml .github/workflows/putrecord.yaml
 ```
 
-2. **Configure repository secrets** using GitHub CLI:
+**Configure repository secrets** using GitHub CLI:
 
 ```bash
 # Set all secrets from your .env file
@@ -301,12 +357,30 @@ config.
 - **`src/main.ts`** - CLI entry point with interactive output and argument
   parsing
 - **`src/lib.ts`** - Library module with core functions (no console output)
+- **`src/templates.ts`** - Inlined templates for init command
 - **`tests/lib.test.ts`** - Unit tests for library functions
 - **`tests/lib.e2e.test.ts`** - End-to-end integration tests
-- **`workflow.yaml`** - Example GitHub Actions workflow (copy to
-  `.github/workflows/` to use)
-- **`.env.example`** - Example environment configuration
+- **`workflow.yaml`** - Example GitHub Actions workflow (reference copy)
+- **`.env.example`** - Example environment configuration (reference copy)
 - **`deno.json`** - Deno configuration with tasks and dependencies
+
+## Development
+
+### Template Maintenance
+
+⚠️ **Important**: The `init` command uses inlined templates for reliability and
+offline support. When updating templates, you must update **both** locations:
+
+1. **Inlined templates** in `src/templates.ts`:
+   - `WORKFLOW_TEMPLATE` - GitHub Actions workflow
+   - `ENV_EXAMPLE_TEMPLATE` - Environment configuration
+
+2. **Repository files** (reference copies):
+   - `workflow.yaml` - Workflow example in repository root
+   - `.env.example` - Environment example in repository root
+
+Keep these in sync to ensure users get consistent templates whether they use
+`init` command or manual setup.
 
 ## License
 
