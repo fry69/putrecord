@@ -4,7 +4,6 @@
  */
 
 import { Client, CredentialManager, ok } from "@atcute/client";
-import type {} from "@atcute/whitewind"; // Import WhiteWind types
 import type {} from "@atcute/atproto"; // Import AT Protocol types
 import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
 
@@ -15,7 +14,7 @@ interface Config {
   pdsUrl: string;
   identifier: string; // Handle or DID
   password: string; // App password
-  collection: string; // e.g., "com.whtwnd.blog.entry"
+  collection: string; // Lexicon collection (NSID format)
   rkey?: string; // Record key (optional - if not provided, creates new record)
   filePath: string; // Path to file to upload
 }
@@ -52,7 +51,7 @@ function loadConfig(): Config {
 }
 
 /**
- * Read file content
+ * Read file content as text
  */
 async function readFile(path: string): Promise<string> {
   try {
@@ -64,11 +63,31 @@ async function readFile(path: string): Promise<string> {
 }
 
 /**
- * Create a blog entry record for WhiteWind
+ * Create a generic AT Protocol record from file content
+ * If content is valid JSON with $type field, use it as-is
+ * Otherwise, create a simple record structure
  */
-function createBlogRecord(content: string): Record<string, unknown> {
+function buildRecord(
+  collection: string,
+  content: string,
+): Record<string, unknown> {
+  // Try to parse as JSON first
+  try {
+    const parsed = JSON.parse(content);
+    // If it's an object and has $type, use it directly
+    if (
+      typeof parsed === "object" && parsed !== null &&
+      typeof parsed.$type === "string"
+    ) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // Not JSON, continue with simple structure
+  }
+
+  // Create a simple generic record
   return {
-    $type: "com.whtwnd.blog.entry",
+    $type: collection,
     content,
     createdAt: new Date().toISOString(),
   };
@@ -158,9 +177,9 @@ async function main() {
     });
     console.log("✓ Authentication successful");
 
-    // Create blog entry record
-    console.log(`Creating blog entry record...`);
-    const record = createBlogRecord(content);
+    // Build record from file content
+    console.log(`Building record from file content...`);
+    const record = buildRecord(config.collection, content);
 
     // Upload or create record based on whether RKEY is provided
     if (config.rkey) {
@@ -188,7 +207,7 @@ async function main() {
 }
 
 // Export functions for testing
-export { createBlogRecord, createRecord, loadConfig, readFile, uploadRecord };
+export { buildRecord, createRecord, loadConfig, readFile, uploadRecord };
 
 // Run if executed directly
 if (import.meta.main) {

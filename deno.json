@@ -11,7 +11,6 @@
     "@atcute/atproto": "npm:@atcute/atproto@^3.1.4",
     "@atcute/client": "npm:@atcute/client@^4.0.3",
     "@atcute/lexicons": "npm:@atcute/lexicons@^1.1.1",
-    "@atcute/whitewind": "npm:@atcute/whitewind@^3.1.0",
     "@std/expect": "jsr:@std/expect@^1.0.17"
   }
 }

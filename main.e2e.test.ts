@@ -6,7 +6,7 @@
 
 import { expect } from "@std/expect";
 import {
-  createBlogRecord,
+  buildRecord,
   createRecord,
   loadConfig,
   readFile,
@@ -141,7 +141,7 @@ if (hasE2EConfig) {
 
       const config = loadConfig();
       const content = await readFile(testFile);
-      const record = createBlogRecord(content);
+      const record = buildRecord(config.collection, content);
 
       // Create new record
       const result = await createRecord(client, config, record);
@@ -198,7 +198,7 @@ if (hasE2EConfig) {
       const config = loadConfig();
 
       // First, create a record to update
-      const initialRecord = createBlogRecord(initialContent);
+      const initialRecord = buildRecord(config.collection, initialContent);
       const createResult = await createRecord(client, config, initialRecord);
       createdRkey = createResult.rkey;
 
@@ -216,7 +216,10 @@ if (hasE2EConfig) {
       Deno.env.set("RKEY", createdRkey);
       const updateConfig = loadConfig();
 
-      const updatedRecord = createBlogRecord(updatedContent);
+      const updatedRecord = buildRecord(
+        updateConfig.collection,
+        updatedContent,
+      );
       const updateResult = await uploadRecord(
         client,
         updateConfig,
@@ -268,7 +271,7 @@ if (hasE2EConfig) {
       Deno.env.delete("RKEY");
 
       const config = loadConfig();
-      const record = createBlogRecord(testContent);
+      const record = buildRecord(config.collection, testContent);
 
       // Should throw error when trying to update without RKEY
       await expect(uploadRecord(client, config, record)).rejects.toThrow(

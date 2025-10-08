@@ -9,7 +9,6 @@
     "npm:@atcute/atproto@^3.1.4": "3.1.4",
     "npm:@atcute/client@^4.0.3": "4.0.3",
     "npm:@atcute/lexicons@^1.1.1": "1.1.1",
-    "npm:@atcute/whitewind@^3.1.0": "3.1.0",
     "npm:@types/node@*": "24.2.0"
   },
   "jsr": {
@@ -60,12 +59,6 @@
         "esm-env"
       ]
     },
-    "@atcute/whitewind@3.1.0": {
-      "integrity": "sha512-dUDfPygb0fThZUJOyfSu6wv230zXQLroHA6reM1Y+XEcop29dFkBqRwxFpJI3pY8nRY0JC+1BtTan3xgFN/jDg==",
-      "dependencies": [
-        "@atcute/lexicons"
-      ]
-    },
     "@badrap/valita@0.4.6": {
       "integrity": "sha512-4kdqcjyxo/8RQ8ayjms47HCWZIF5981oE5nIenbfThKDxWXtEHKipAOWlflpPJzZx9y/JWYQkp18Awr7VuepFg=="
     },
@@ -87,8 +80,7 @@
       "jsr:@std/expect@^1.0.17",
       "npm:@atcute/atproto@^3.1.4",
       "npm:@atcute/client@^4.0.3",
-      "npm:@atcute/lexicons@^1.1.1",
-      "npm:@atcute/whitewind@^3.1.0"
+      "npm:@atcute/lexicons@^1.1.1"
     ]
   }
 }

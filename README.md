@@ -3,7 +3,8 @@
 Upload files as AT Protocol records to a PDS. Built with
 [atcute](https://github.com/mary-ext/atcute) and Deno.
 
-Supports any file type that can be uploaded via AT Protocol.
+**Content-neutral**: Works with any AT Protocol collection and content type. No
+assumptions about file format or lexicon schema.
 
 ## Two Modes of Operation
 
@@ -28,10 +29,22 @@ Environment variables:
 - `PDS_URL` - PDS endpoint (e.g., `https://bsky.social`)
 - `IDENTIFIER` - Handle or DID (e.g., `alice.bsky.social`)
 - `APP_PASSWORD` - App password (not main account password)
-- `COLLECTION` - Lexicon collection (e.g., `com.whtwnd.blog.entry`)
+- `COLLECTION` - Lexicon collection in NSID format (e.g.,
+  `com.example.myapp.record`)
 - `RKEY` - Record key (optional - omit for create mode, required for update
   mode)
 - `FILE_PATH` - Path to file to upload
+
+## Content Handling
+
+The script intelligently handles different content types:
+
+- **JSON with `$type` field**: Used as-is as the record (for custom lexicon
+  schemas)
+- **Other content**: Wrapped in a simple structure with `$type`, `content`, and
+  `createdAt` fields
+
+This allows flexibility to work with any AT Protocol collection.
 
 ## Usage
 
@@ -43,15 +56,15 @@ Environment variables:
 PDS_URL=https://bsky.social
 IDENTIFIER=alice.bsky.social
 APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
-COLLECTION=com.whtwnd.blog.entry
-FILE_PATH=./posts/blog-post.md
+COLLECTION=com.example.note
+FILE_PATH=./content/note.txt
 ```
 
 2. Create your file:
 
 ```bash
-mkdir -p posts
-echo "# My First Post" > posts/blog-post.md
+mkdir -p content
+echo "This is my first note." > content/note.txt
 ```
 
 3. Upload and get the generated RKEY:
@@ -81,11 +94,30 @@ Once you have an RKEY, subsequent runs will update the existing record:
 
 ```bash
 # Edit your file
-echo "# My Updated Post" > posts/blog-post.md
+echo "This is my updated note." > content/note.txt
 
 # Upload (will update the existing record)
 deno task upload
 ```
+
+### Using Custom JSON Records
+
+For collections with custom schemas, provide a JSON file with the `$type` field:
+
+```json
+{
+  "$type": "com.example.myapp.post",
+  "title": "My Post",
+  "content": "Post content here",
+  "tags": ["tag1", "tag2"],
+  "metadata": {
+    "author": "Alice",
+    "date": "2025-10-08"
+  }
+}
+```
+
+The script will use this structure as-is for your record.
 
 ### GitHub Actions (Automated Updates)
 
@@ -135,11 +167,15 @@ Loads and validates environment variables. RKEY is optional.
 
 ### `readFile(path: string): Promise<string>`
 
-Reads file content.
+Reads file content as text.
 
-### `createBlogRecord(content: string): Record<string, unknown>`
+### `buildRecord(collection: string, content: string): Record<string, unknown>`
 
-Creates AT Protocol record with `$type`, `content`, and `createdAt`.
+Builds an AT Protocol record from content:
+
+- If content is JSON with `$type` field: Uses the JSON as-is
+- Otherwise: Wraps content in a structure with `$type`, `content`, and
+  `createdAt` fields
 
 ### `createRecord(client, config, record): Promise<{ uri, cid, rkey }>`
 
