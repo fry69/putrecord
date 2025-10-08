@@ -29,4 +29,4 @@ jobs:
           COLLECTION: ${{ secrets.COLLECTION }}
           RKEY: ${{ secrets.RKEY }}
           FILE_PATH: ${{ secrets.FILE_PATH }}
-        run: deno task upload
+        run: deno run -A jsr:@fry69/putrecord --quiet

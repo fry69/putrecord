@@ -1,9 +1,9 @@
 /**
- * Unit tests for main.ts functions
+ * Unit tests for lib.ts functions
  */
 
 import { expect } from "@std/expect";
-import { buildRecord, loadConfig, readFile } from "./main.ts";
+import { buildRecord, loadConfig, readFile } from "./lib.ts";
 
 Deno.test("loadConfig - should load all required environment variables with RKEY", () => {
   // Set up environment

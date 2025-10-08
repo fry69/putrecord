@@ -8,16 +8,16 @@ assumptions about file format or lexicon schema.
 
 ## Installation
 
-### As a CLI Tool
+### As a CLI Tool (Default)
 
 ```bash
 # Run directly with Deno
-deno run -A jsr:@fry69/putrecord/cli
+deno run -A jsr:@fry69/putrecord
 
 # With options
-deno run -A jsr:@fry69/putrecord/cli --quiet
-deno run -A jsr:@fry69/putrecord/cli --help
-deno run -A jsr:@fry69/putrecord/cli --version
+deno run -A jsr:@fry69/putrecord --quiet
+deno run -A jsr:@fry69/putrecord --help
+deno run -A jsr:@fry69/putrecord --version
 ```
 
 ### As a Library
@@ -30,7 +30,7 @@ import {
   loadConfig,
   readFile,
   uploadRecord,
-} from "jsr:@fry69/putrecord";
+} from "jsr:@fry69/putrecord/lib";
 
 // Library functions are quiet by default (no console output)
 const config = loadConfig();
@@ -44,7 +44,8 @@ Or add to your `deno.json`:
 ```json
 {
   "imports": {
-    "@fry69/putrecord": "jsr:@fry69/putrecord@^0.1.0"
+    "@fry69/putrecord": "jsr:@fry69/putrecord@^0.1.0",
+    "@fry69/putrecord/lib": "jsr:@fry69/putrecord@^0.1.0/lib"
   }
 }
 ```
@@ -109,10 +110,10 @@ Example:
 
 ```bash
 # Quiet mode (useful for automation)
-deno run -A jsr:@fry69/putrecord/cli --quiet
+deno run -A jsr:@fry69/putrecord --quiet
 
 # Show help
-deno run -A jsr:@fry69/putrecord/cli --help
+deno run -A jsr:@fry69/putrecord --help
 ```
 
 ## Usage
@@ -298,17 +299,18 @@ config.
 
 **Throws**: Error if RKEY is not provided or update fails.
 
-## Library vs CLI
+## CLI vs Library
 
-- **Library (`jsr:@fry69/putrecord`)**: Pure functions with no console output.
-  Use in code, automation, workflows.
-- **CLI (`jsr:@fry69/putrecord/cli`)**: User-friendly command-line interface
-  with interactive output. Use `--quiet` flag to suppress non-error messages.
+- **CLI (`jsr:@fry69/putrecord`)**: Default entry point. User-friendly
+  command-line interface with interactive output. Use `--quiet` flag to suppress
+  non-error messages.
+- **Library (`jsr:@fry69/putrecord/lib`)**: Pure functions with no console
+  output. Use in code, automation, workflows.
 
 ## Repository Files
 
-- **`main.ts`** - Library module with core functions (no console output)
-- **`cli.ts`** - CLI wrapper with interactive output and argument parsing
+- **`main.ts`** - CLI entry point with interactive output and argument parsing
+- **`lib.ts`** - Library module with core functions (no console output)
 - **`main.test.ts`** - Unit tests for library functions
 - **`main.e2e.test.ts`** - End-to-end integration tests
 - **`workflow.yaml`** - Example GitHub Actions workflow (copy to

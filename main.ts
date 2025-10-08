@@ -1,276 +1,180 @@
 /**
- * Upload files as AT Protocol records to a PDS.
+ * Command-line interface for putrecord.
  *
- * This module provides functionality to create and update records in any AT
- * Protocol collection. It supports two modes: create mode (without RKEY) for
- * new records, and update mode (with RKEY) for existing records.
- *
- * @example
- * ```ts
- * import { buildRecord, createRecord } from "@fry69/putrecord";
- * import { Client, CredentialManager } from "@atcute/client";
- *
- * // Setup client
- * const manager = new CredentialManager({ service: "https://bsky.social" });
- * const client = new Client({ handler: manager });
- * await manager.login({ identifier: "user.bsky.social", password: "app-password" });
- *
- * // Create a record
- * const record = buildRecord("com.example.note", "My first note");
- * const result = await createRecord(client, config, record);
- * console.log("Created with RKEY:", result.rkey);
- * ```
+ * This module provides a CLI wrapper around the library functions with
+ * appropriate logging and error handling.
  *
  * @module
  */
 
-import { ok } from "@atcute/client";
-import type { Client } from "@atcute/client";
-import type {} from "@atcute/atproto"; // Import AT Protocol types
-import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
+import { parseArgs } from "@std/cli";
+import { Client, CredentialManager } from "@atcute/client";
+import {
+  buildRecord,
+  createRecord,
+  loadConfig,
+  readFile,
+  uploadRecord,
+} from "./lib.ts";
+
+const VERSION = "0.1.0";
 
 /**
- * Configuration for uploading records to a PDS.
- *
- * This interface defines the required settings loaded from environment
- * variables or provided programmatically.
+ * Print help message
  */
-interface Config {
-  /** PDS endpoint URL (e.g., "https://bsky.social") */
-  pdsUrl: string;
-  /** User handle or DID (e.g., "alice.bsky.social" or "did:plc:...") */
-  identifier: string;
-  /** App password for authentication (not the main account password) */
-  password: string;
-  /** Lexicon collection in NSID format (e.g., "com.example.note") */
-  collection: string;
-  /**
-   * Record key for updating existing records.
-   *
-   * Optional - if not provided, a new record will be created with an
-   * auto-generated RKEY.
-   */
-  rkey?: string;
-  /** Path to the file to upload */
-  filePath: string;
+function printHelp() {
+  console.log(`
+putrecord v${VERSION}
+
+Upload files as AT Protocol records to a PDS.
+
+USAGE:
+  deno run -A jsr:@fry69/putrecord [OPTIONS]
+
+OPTIONS:
+  -q, --quiet     Suppress all non-error output
+  -h, --help      Show this help message
+  -v, --version   Show version information
+
+CONFIGURATION:
+  Configuration is loaded from environment variables:
+    PDS_URL       - PDS endpoint (e.g., https://bsky.social)
+    IDENTIFIER    - User handle or DID
+    APP_PASSWORD  - App password (not main account password)
+    COLLECTION    - Lexicon collection in NSID format
+    FILE_PATH     - Path to file to upload
+    RKEY          - Record key (optional - omit to create new record)
+
+EXAMPLES:
+  # Create a new record (without RKEY)
+  deno run -A jsr:@fry69/putrecord
+
+  # Update existing record (with RKEY in env)
+  deno run -A jsr:@fry69/putrecord
+
+  # Quiet mode (only errors)
+  deno run -A jsr:@fry69/putrecord --quiet
+
+For more information, visit: https://github.com/fry69/putrecord
+`);
 }
 
 /**
- * Load and validate configuration from environment variables.
- *
- * Reads required environment variables and validates they are present.
- * RKEY is optional - if not provided, a new record will be created.
- *
- * @returns The validated configuration object
- * @throws {Error} If any required environment variable is missing
- *
- * @example
- * ```ts
- * // Set environment variables first
- * Deno.env.set("PDS_URL", "https://bsky.social");
- * Deno.env.set("IDENTIFIER", "alice.bsky.social");
- * Deno.env.set("APP_PASSWORD", "xxxx-xxxx-xxxx-xxxx");
- * Deno.env.set("COLLECTION", "com.example.note");
- * Deno.env.set("FILE_PATH", "./note.txt");
- *
- * const config = loadConfig();
- * ```
+ * Print version information
  */
-function loadConfig(): Config {
-  const required = [
-    "PDS_URL",
-    "IDENTIFIER",
-    "APP_PASSWORD",
-    "COLLECTION",
-    "FILE_PATH",
-  ];
+function printVersion() {
+  console.log(`putrecord v${VERSION}`);
+}
 
-  for (const key of required) {
-    if (!Deno.env.get(key)) {
-      throw new Error(`Missing required environment variable: ${key}`);
+/**
+ * Logger that respects quiet mode
+ */
+class Logger {
+  constructor(private quiet: boolean) {}
+
+  log(message: string) {
+    if (!this.quiet) {
+      console.log(message);
     }
   }
 
-  const rkey = Deno.env.get("RKEY");
+  error(message: string) {
+    console.error(message);
+  }
 
-  return {
-    pdsUrl: Deno.env.get("PDS_URL")!,
-    identifier: Deno.env.get("IDENTIFIER")!,
-    password: Deno.env.get("APP_PASSWORD")!,
-    collection: Deno.env.get("COLLECTION")!,
-    rkey: rkey || undefined,
-    filePath: Deno.env.get("FILE_PATH")!,
-  };
+  success(message: string) {
+    if (!this.quiet) {
+      console.log(message);
+    }
+  }
 }
 
 /**
- * Read file content as text.
- *
- * Reads the entire file content using UTF-8 encoding.
- *
- * @param path The absolute or relative path to the file
- * @returns The file content as a string
- * @throws {Error} If the file cannot be read or doesn't exist
- *
- * @example
- * ```ts
- * const content = await readFile("./note.txt");
- * console.log(`Read ${content.length} characters`);
- * ```
+ * Main CLI execution
  */
-async function readFile(path: string): Promise<string> {
+async function main() {
+  // Parse command-line arguments
+  const args = parseArgs(Deno.args, {
+    boolean: ["quiet", "help", "version"],
+    alias: {
+      q: "quiet",
+      h: "help",
+      v: "version",
+    },
+  });
+
+  // Handle help flag
+  if (args.help) {
+    printHelp();
+    Deno.exit(0);
+  }
+
+  // Handle version flag
+  if (args.version) {
+    printVersion();
+    Deno.exit(0);
+  }
+
+  const logger = new Logger(args.quiet);
+
   try {
-    return await Deno.readTextFile(path);
+    // Load configuration
+    logger.log("Loading configuration...");
+    const config = loadConfig();
+
+    // Read file content
+    logger.log(`Reading file: ${config.filePath}`);
+    const content = await readFile(config.filePath);
+    logger.log(`✓ File read (${content.length} characters)`);
+
+    // Authenticate
+    logger.log(`Authenticating as: ${config.identifier}`);
+    const manager = new CredentialManager({ service: config.pdsUrl });
+    const client = new Client({ handler: manager });
+
+    await manager.login({
+      identifier: config.identifier,
+      password: config.password,
+    });
+    logger.log("✓ Authentication successful");
+
+    // Build record from file content
+    logger.log("Building record from file content...");
+    const record = buildRecord(config.collection, content);
+
+    // Upload or create record based on whether RKEY is provided
+    if (config.rkey) {
+      logger.log(
+        `Updating existing record: ${config.collection}/${config.rkey}...`,
+      );
+      const result = await uploadRecord(client, config, record);
+
+      logger.success("\n✓ Record updated successfully!");
+      logger.log(`  URI: ${result.uri}`);
+      logger.log(`  CID: ${result.cid}`);
+    } else {
+      logger.log(`Creating new record in ${config.collection}...`);
+      const result = await createRecord(client, config, record);
+
+      logger.success("\n✓ New record created successfully!");
+      logger.log(`  URI: ${result.uri}`);
+      logger.log(`  CID: ${result.cid}`);
+      logger.log(`  RKEY: ${result.rkey}`);
+      logger.log(
+        `\n⚠️  Save this RKEY for future updates: ${result.rkey}`,
+      );
+      logger.log(`   Add to your .env file: RKEY=${result.rkey}`);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to read file ${path}: ${message}`);
+    logger.error(`\n✗ Error: ${message}`);
+    Deno.exit(1);
   }
 }
 
-/**
- * Build an AT Protocol record from file content.
- *
- * This function intelligently handles different content types:
- * - If content is valid JSON with a `$type` field, it uses the JSON as-is
- * - Otherwise, it wraps the content in a simple structure with `$type`,
- *   `content`, and `createdAt` fields
- *
- * This allows flexibility to work with any AT Protocol collection and custom
- * lexicon schemas.
- *
- * @param collection The lexicon collection NSID (e.g., "com.example.note")
- * @param content The file content to convert into a record
- * @returns An AT Protocol record ready to upload
- *
- * @example Simple text content
- * ```ts
- * const record = buildRecord("com.example.note", "My note text");
- * // Returns: { $type: "com.example.note", content: "My note text", createdAt: "..." }
- * ```
- *
- * @example Custom JSON schema
- * ```ts
- * const jsonContent = JSON.stringify({
- *   $type: "com.example.post",
- *   title: "My Post",
- *   body: "Content here"
- * });
- * const record = buildRecord("com.example.post", jsonContent);
- * // Returns: { $type: "com.example.post", title: "My Post", body: "Content here" }
- * ```
- */
-function buildRecord(
-  collection: string,
-  content: string,
-): Record<string, unknown> {
-  // Try to parse as JSON first
-  try {
-    const parsed = JSON.parse(content);
-    // If it's an object and has $type, use it directly
-    if (
-      typeof parsed === "object" && parsed !== null &&
-      typeof parsed.$type === "string"
-    ) {
-      return parsed as Record<string, unknown>;
-    }
-  } catch {
-    // Not JSON, continue with simple structure
-  }
-
-  // Create a simple generic record
-  return {
-    $type: collection,
-    content,
-    createdAt: new Date().toISOString(),
-  };
+// Run if executed directly
+if (import.meta.main) {
+  main();
 }
 
-/**
- * Create a new record in the PDS with an auto-generated RKEY.
- *
- * This function uses `com.atproto.repo.createRecord` to create a new record.
- * The PDS automatically generates a timestamp-based RKEY (TID), which is
- * returned for future updates.
- *
- * @param client The authenticated AT Protocol client
- * @param config The configuration containing repository and collection info
- * @param record The record data to upload
- * @returns An object containing the URI, CID, and generated RKEY
- *
- * @example
- * ```ts
- * const record = buildRecord("com.example.note", "My first note");
- * const result = await createRecord(client, config, record);
- * console.log(`Created with RKEY: ${result.rkey}`);
- * console.log(`URI: ${result.uri}`);
- * // Save result.rkey for future updates!
- * ```
- */
-async function createRecord(
-  client: Client,
-  config: Config,
-  record: Record<string, unknown>,
-): Promise<{ uri: string; cid: string; rkey: string }> {
-  const response = await ok(
-    client.post("com.atproto.repo.createRecord", {
-      input: {
-        repo: config.identifier as ActorIdentifier,
-        collection: config.collection as Nsid,
-        record,
-      },
-    }),
-  );
-
-  // Extract rkey from URI (format: at://did:plc:.../collection/rkey)
-  const rkey = response.uri.split("/").pop() || "";
-
-  return { uri: response.uri, cid: response.cid, rkey };
-}
-
-/**
- * Update an existing record in the PDS.
- *
- * This function uses `com.atproto.repo.putRecord` to overwrite an existing
- * record at the specified RKEY. The RKEY must be provided in the config.
- *
- * @param client The authenticated AT Protocol client
- * @param config The configuration containing repository, collection, and RKEY
- * @param record The updated record data to upload
- * @returns An object containing the URI and CID of the updated record
- * @throws {Error} If RKEY is not provided in the config
- *
- * @example
- * ```ts
- * const record = buildRecord("com.example.note", "Updated note text");
- * const result = await uploadRecord(client, config, record);
- * console.log(`Updated record at: ${result.uri}`);
- * ```
- */
-async function uploadRecord(
-  client: Client,
-  config: Config,
-  record: Record<string, unknown>,
-): Promise<{ uri: string; cid: string }> {
-  if (!config.rkey) {
-    throw new Error("RKEY is required for updating records");
-  }
-
-  const response = await ok(
-    client.post("com.atproto.repo.putRecord", {
-      input: {
-        repo: config.identifier as ActorIdentifier,
-        collection: config.collection as Nsid,
-        rkey: config.rkey,
-        record,
-      },
-    }),
-  );
-
-  return { uri: response.uri, cid: response.cid };
-}
-
-// Export all library functions
-export { buildRecord, createRecord, loadConfig, readFile, uploadRecord };
-
-// Export types for users who need them
-export type { Config };
+export { main };

@@ -1,5 +1,5 @@
 /**
- * End-to-end integration tests for main.ts
+ * End-to-end integration tests for lib.ts
  * These tests run against a real PDS using credentials from .env.e2e
  * They only run if .env.e2e exists
  */
@@ -11,7 +11,7 @@ import {
   loadConfig,
   readFile,
   uploadRecord,
-} from "./main.ts";
+} from "./lib.ts";
 import { Client, CredentialManager, ok } from "@atcute/client";
 import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
 
