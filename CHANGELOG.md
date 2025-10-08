@@ -1,3 +1,7 @@
+### v0.2.2
+
+- fix init tests on Windows
+
 ### v0.2.1
 
 - fix accidentally deleted test task

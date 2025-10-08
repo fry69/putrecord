@@ -3,6 +3,7 @@
  */
 
 import { expect } from "@std/expect";
+import { fromFileUrl } from "@std/path";
 import { ENV_EXAMPLE_TEMPLATE, WORKFLOW_TEMPLATE } from "../src/templates.ts";
 import { cleanupTestDir, createTestDir, joinPath } from "./test_utils.ts";
 
@@ -14,14 +15,16 @@ async function runInit(
   args: string[] = [],
 ): Promise<{ success: boolean; output: string }> {
   // Get absolute path to main.ts from the project root
-  const projectRoot = new URL("../", import.meta.url).pathname;
-  const mainPath = `${projectRoot}src/main.ts`;
+  // Use fromFileUrl to properly handle Windows paths
+  const projectRoot = new URL("../", import.meta.url);
+  const mainPath = new URL("src/main.ts", projectRoot);
+  const mainPathString = fromFileUrl(mainPath);
 
   const cmd = new Deno.Command(Deno.execPath(), {
     args: [
       "run",
       "-A",
-      mainPath,
+      mainPathString,
       "init",
       ...args,
     ],
@@ -46,6 +49,9 @@ Deno.test("init - should create workflow directory", async () => {
   try {
     const result = await runInit(tempDir);
 
+    if (!result.success) {
+      console.error("Init failed with output:", result.output);
+    }
     expect(result.success).toBe(true);
     expect(result.output).toContain("Created directory: .github/workflows");
 
