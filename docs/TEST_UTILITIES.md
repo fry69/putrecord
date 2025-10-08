@@ -202,7 +202,7 @@ Deno.test("should create nested files", async () => {
     await writeTestFile(
       tempDir,
       [".github", "workflows", "test.yaml"],
-      "content"
+      "content",
     );
 
     // Read from nested path
@@ -308,7 +308,7 @@ const readContent = await Deno.readTextFile(workflowPath);
 await writeTestFile(
   tempDir,
   [".github", "workflows", "putrecord.yaml"],
-  content
+  content,
 );
 const readContent = await readTestFile(tempDir, [
   ".github",
@@ -324,7 +324,7 @@ const workflowPath = joinPath(
   tempDir,
   ".github",
   "workflows",
-  "putrecord.yaml"
+  "putrecord.yaml",
 );
 await Deno.writeTextFile(workflowPath, content);
 ```

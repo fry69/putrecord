@@ -12,131 +12,38 @@ import {
   readFile,
   uploadRecord,
 } from "../src/lib.ts";
-import { Client, CredentialManager, ok } from "@atcute/client";
-import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
-
-/**
- * Load E2E test configuration from .env.e2e
- */
-async function loadE2EConfig() {
-  try {
-    // Check if .env.e2e exists
-    await Deno.stat(".env.e2e");
-
-    // Load .env.e2e file
-    const envContent = await Deno.readTextFile(".env.e2e");
-    const lines = envContent.split("\n");
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith("#")) {
-        const [key, ...valueParts] = trimmed.split("=");
-        if (key && valueParts.length > 0) {
-          const value = valueParts.join("=").trim();
-          Deno.env.set(key.trim(), value);
-        }
-      }
-    }
-
-    // Verify required credentials are present
-    const required = ["PDS_URL", "IDENTIFIER", "APP_PASSWORD"];
-    for (const key of required) {
-      if (!Deno.env.get(key)) {
-        throw new Error(`Missing ${key} in .env.e2e`);
-      }
-    }
-
-    return true;
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) {
-      return false;
-    }
-    throw error;
-  }
-}
-
-/**
- * Setup authenticated client for E2E tests
- */
-async function setupClient() {
-  const pdsUrl = Deno.env.get("PDS_URL")!;
-  const identifier = Deno.env.get("IDENTIFIER")!;
-  const password = Deno.env.get("APP_PASSWORD")!;
-
-  const manager = new CredentialManager({ service: pdsUrl });
-  const client = new Client({ handler: manager });
-
-  await manager.login({
-    identifier,
-    password,
-  });
-
-  return { client, identifier };
-}
-
-/**
- * Clean up test records from PDS
- */
-async function deleteRecord(
-  client: Client,
-  identifier: string,
-  collection: string,
-  rkey: string,
-) {
-  try {
-    await ok(
-      client.post("com.atproto.repo.deleteRecord", {
-        input: {
-          repo: identifier as ActorIdentifier,
-          collection: collection as Nsid,
-          rkey,
-        },
-      }),
-    );
-  } catch (_error) {
-    // Ignore errors during cleanup
-  }
-}
-
-/**
- * Retrieve a record from PDS to verify it exists
- */
-async function getRecord(
-  client: Client,
-  identifier: string,
-  collection: string,
-  rkey: string,
-) {
-  const response = await ok(
-    client.get("com.atproto.repo.getRecord", {
-      params: {
-        repo: identifier as ActorIdentifier,
-        collection: collection as Nsid,
-        rkey,
-      },
-    }),
-  );
-  return response;
-}
+import {
+  cleanupTestDir,
+  createTestDir,
+  deleteE2ERecord,
+  getE2ERecord,
+  joinPath,
+  loadE2EConfig,
+  setupE2EClient,
+  wait,
+} from "./test_utils.ts";
 
 // Skip all E2E tests if .env.e2e doesn't exist
-const hasE2EConfig = await loadE2EConfig();
+const envVars = await loadE2EConfig();
 
-if (hasE2EConfig) {
+if (envVars) {
   console.log("✓ E2E configuration found, running integration tests...\n");
 
   Deno.test("E2E: Create new record without RKEY", async () => {
-    const { client, identifier } = await setupClient();
-    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    const { client, identifier } = await setupE2EClient(envVars);
+    const tempDir = await createTestDir("putrecord_e2e_");
 
     try {
       // Create test file in temp directory
-      const testFile = `${tempDir}/test-create.md`;
+      const testFile = joinPath(tempDir, "test-create.md");
       const testContent =
         `# E2E Test - Create Mode\n\nTimestamp: ${Date.now()}`;
       await Deno.writeTextFile(testFile, testContent);
 
       // Setup config for create mode (no RKEY)
+      Deno.env.set("PDS_URL", envVars["PDS_URL"]);
+      Deno.env.set("IDENTIFIER", envVars["IDENTIFIER"]);
+      Deno.env.set("APP_PASSWORD", envVars["APP_PASSWORD"]);
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
       Deno.env.delete("RKEY"); // Ensure RKEY is not set
@@ -156,10 +63,10 @@ if (hasE2EConfig) {
       console.log(`  Created record with RKEY: ${result.rkey}`);
 
       // Wait a bit for the record to be available
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Verify record exists by retrieving it
-      const retrieved = await getRecord(
+      const retrieved = await getE2ERecord(
         client,
         identifier,
         config.collection,
@@ -171,30 +78,33 @@ if (hasE2EConfig) {
       );
 
       // Cleanup: Delete the created record
-      await deleteRecord(client, identifier, config.collection, result.rkey);
+      await deleteE2ERecord(client, identifier, config.collection, result.rkey);
       console.log(`  Cleaned up record: ${result.rkey}`);
     } finally {
       // Cleanup temp directory and all files
-      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      await cleanupTestDir(tempDir);
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
     }
   });
 
   Deno.test("E2E: Update existing record with RKEY", async () => {
-    const { client, identifier } = await setupClient();
-    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    const { client, identifier } = await setupE2EClient(envVars);
+    const tempDir = await createTestDir("putrecord_e2e_");
 
     let createdRkey = "";
 
     try {
       // Create test file in temp directory
-      const testFile = `${tempDir}/test-update.md`;
+      const testFile = joinPath(tempDir, "test-update.md");
       const initialContent =
         `# E2E Test - Update Mode\n\nInitial: ${Date.now()}`;
       await Deno.writeTextFile(testFile, initialContent);
 
       // Setup config
+      Deno.env.set("PDS_URL", envVars["PDS_URL"]);
+      Deno.env.set("IDENTIFIER", envVars["IDENTIFIER"]);
+      Deno.env.set("APP_PASSWORD", envVars["APP_PASSWORD"]);
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
       Deno.env.delete("RKEY");
@@ -209,7 +119,7 @@ if (hasE2EConfig) {
       console.log(`  Created record for update test: ${createdRkey}`);
 
       // Wait for record to be available
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Now update the record
       const updatedContent =
@@ -235,10 +145,10 @@ if (hasE2EConfig) {
       expect(updateResult.uri).toContain(createdRkey);
 
       // Wait for update to propagate
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Verify the record was updated
-      const retrieved = await getRecord(
+      const retrieved = await getE2ERecord(
         client,
         identifier,
         config.collection,
@@ -251,11 +161,11 @@ if (hasE2EConfig) {
       console.log(`  Successfully updated record: ${createdRkey}`);
 
       // Cleanup
-      await deleteRecord(client, identifier, config.collection, createdRkey);
+      await deleteE2ERecord(client, identifier, config.collection, createdRkey);
       console.log(`  Cleaned up record: ${createdRkey}`);
     } finally {
       // Cleanup temp directory and all files
-      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      await cleanupTestDir(tempDir);
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
       Deno.env.delete("RKEY");
@@ -263,14 +173,17 @@ if (hasE2EConfig) {
   });
 
   Deno.test("E2E: uploadRecord should fail without RKEY", async () => {
-    const { client } = await setupClient();
-    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    const { client } = await setupE2EClient(envVars);
+    const tempDir = await createTestDir("putrecord_e2e_");
 
     try {
-      const testFile = `${tempDir}/test-fail.md`;
+      const testFile = joinPath(tempDir, "test-fail.md");
       const testContent = "# Test Content";
       await Deno.writeTextFile(testFile, testContent);
 
+      Deno.env.set("PDS_URL", envVars["PDS_URL"]);
+      Deno.env.set("IDENTIFIER", envVars["IDENTIFIER"]);
+      Deno.env.set("APP_PASSWORD", envVars["APP_PASSWORD"]);
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
       Deno.env.delete("RKEY");
@@ -283,22 +196,25 @@ if (hasE2EConfig) {
         "RKEY is required for updating records",
       );
     } finally {
-      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      await cleanupTestDir(tempDir);
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
     }
   });
 
   Deno.test("E2E: WhiteWind - Create with default visibility", async () => {
-    const { client, identifier } = await setupClient();
-    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    const { client, identifier } = await setupE2EClient(envVars);
+    const tempDir = await createTestDir("putrecord_e2e_");
 
     try {
-      const testFile = `${tempDir}/whitewind-create.md`;
+      const testFile = joinPath(tempDir, "whitewind-create.md");
       const testContent =
         `# WhiteWind Test Post\n\nCreated at: ${Date.now()}\n\nThis is a test post.`;
       await Deno.writeTextFile(testFile, testContent);
 
+      Deno.env.set("PDS_URL", envVars["PDS_URL"]);
+      Deno.env.set("IDENTIFIER", envVars["IDENTIFIER"]);
+      Deno.env.set("APP_PASSWORD", envVars["APP_PASSWORD"]);
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
       Deno.env.delete("RKEY");
@@ -321,10 +237,10 @@ if (hasE2EConfig) {
       );
 
       // Wait for propagation
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Verify the record
-      const retrieved = await getRecord(
+      const retrieved = await getE2ERecord(
         client,
         identifier,
         config.collection,
@@ -338,26 +254,29 @@ if (hasE2EConfig) {
       );
 
       // Cleanup
-      await deleteRecord(client, identifier, config.collection, result.rkey);
+      await deleteE2ERecord(client, identifier, config.collection, result.rkey);
       console.log(`  Cleaned up record: ${result.rkey}`);
     } finally {
-      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      await cleanupTestDir(tempDir);
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
     }
   });
 
   Deno.test("E2E: WhiteWind - Preserve custom title on update", async () => {
-    const { client, identifier } = await setupClient();
-    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    const { client, identifier } = await setupE2EClient(envVars);
+    const tempDir = await createTestDir("putrecord_e2e_");
     let createdRkey = "";
 
     try {
-      const testFile = `${tempDir}/whitewind-preserve-title.md`;
+      const testFile = joinPath(tempDir, "whitewind-preserve-title.md");
       const initialContent =
         `# Initial Title\n\nInitial content: ${Date.now()}`;
       await Deno.writeTextFile(testFile, initialContent);
 
+      Deno.env.set("PDS_URL", envVars["PDS_URL"]);
+      Deno.env.set("IDENTIFIER", envVars["IDENTIFIER"]);
+      Deno.env.set("APP_PASSWORD", envVars["APP_PASSWORD"]);
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
       Deno.env.delete("RKEY");
@@ -374,10 +293,10 @@ if (hasE2EConfig) {
       console.log(
         `  Created WhiteWind record with custom title: ${createdRkey}`,
       );
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Verify custom title was saved
-      const beforeUpdate = await getRecord(
+      const beforeUpdate = await getE2ERecord(
         client,
         identifier,
         config.collection,
@@ -399,7 +318,7 @@ if (hasE2EConfig) {
       const existingRecord = await (async () => {
         if (!updateConfig.rkey) return undefined;
         try {
-          const response = await getRecord(
+          const response = await getE2ERecord(
             client,
             identifier,
             updateConfig.collection,
@@ -429,10 +348,10 @@ if (hasE2EConfig) {
       expect(updateResult.uri).toContain(createdRkey);
 
       console.log(`  Updated record while preserving custom title`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Verify title was preserved
-      const afterUpdate = await getRecord(
+      const afterUpdate = await getE2ERecord(
         client,
         identifier,
         config.collection,
@@ -448,10 +367,10 @@ if (hasE2EConfig) {
       console.log(`  ✓ Custom title preserved after update`);
 
       // Cleanup
-      await deleteRecord(client, identifier, config.collection, createdRkey);
+      await deleteE2ERecord(client, identifier, config.collection, createdRkey);
       console.log(`  Cleaned up record: ${createdRkey}`);
     } finally {
-      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      await cleanupTestDir(tempDir);
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
       Deno.env.delete("RKEY");
@@ -459,16 +378,19 @@ if (hasE2EConfig) {
   });
 
   Deno.test("E2E: WhiteWind - Preserve custom visibility on update", async () => {
-    const { client, identifier } = await setupClient();
-    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    const { client, identifier } = await setupE2EClient(envVars);
+    const tempDir = await createTestDir("putrecord_e2e_");
     let createdRkey = "";
 
     try {
-      const testFile = `${tempDir}/whitewind-preserve-visibility.md`;
+      const testFile = joinPath(tempDir, "whitewind-preserve-visibility.md");
       const initialContent =
         `# Visibility Test\n\nInitial content: ${Date.now()}`;
       await Deno.writeTextFile(testFile, initialContent);
 
+      Deno.env.set("PDS_URL", envVars["PDS_URL"]);
+      Deno.env.set("IDENTIFIER", envVars["IDENTIFIER"]);
+      Deno.env.set("APP_PASSWORD", envVars["APP_PASSWORD"]);
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
       Deno.env.delete("RKEY");
@@ -484,10 +406,10 @@ if (hasE2EConfig) {
       console.log(
         `  Created WhiteWind record with visibility="author": ${createdRkey}`,
       );
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Verify custom visibility was saved
-      const beforeUpdate = await getRecord(
+      const beforeUpdate = await getE2ERecord(
         client,
         identifier,
         config.collection,
@@ -509,7 +431,7 @@ if (hasE2EConfig) {
       const existingRecord = await (async () => {
         if (!updateConfig.rkey) return undefined;
         try {
-          const response = await getRecord(
+          const response = await getE2ERecord(
             client,
             identifier,
             updateConfig.collection,
@@ -539,10 +461,10 @@ if (hasE2EConfig) {
       expect(updateResult.uri).toContain(createdRkey);
 
       console.log(`  Updated record while preserving custom visibility`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Verify visibility was preserved
-      const afterUpdate = await getRecord(
+      const afterUpdate = await getE2ERecord(
         client,
         identifier,
         config.collection,
@@ -555,10 +477,10 @@ if (hasE2EConfig) {
       console.log(`  ✓ Custom visibility preserved after update`);
 
       // Cleanup
-      await deleteRecord(client, identifier, config.collection, createdRkey);
+      await deleteE2ERecord(client, identifier, config.collection, createdRkey);
       console.log(`  Cleaned up record: ${createdRkey}`);
     } finally {
-      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      await cleanupTestDir(tempDir);
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
       Deno.env.delete("RKEY");
@@ -566,16 +488,19 @@ if (hasE2EConfig) {
   });
 
   Deno.test("E2E: WhiteWind - Force fields override on update", async () => {
-    const { client, identifier } = await setupClient();
-    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    const { client, identifier } = await setupE2EClient(envVars);
+    const tempDir = await createTestDir("putrecord_e2e_");
     let createdRkey = "";
 
     try {
-      const testFile = `${tempDir}/whitewind-force-fields.md`;
+      const testFile = joinPath(tempDir, "whitewind-force-fields.md");
       const initialContent =
         `# Original Title\n\nInitial content: ${Date.now()}`;
       await Deno.writeTextFile(testFile, initialContent);
 
+      Deno.env.set("PDS_URL", envVars["PDS_URL"]);
+      Deno.env.set("IDENTIFIER", envVars["IDENTIFIER"]);
+      Deno.env.set("APP_PASSWORD", envVars["APP_PASSWORD"]);
       Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
       Deno.env.set("FILE_PATH", testFile);
       Deno.env.delete("RKEY");
@@ -592,7 +517,7 @@ if (hasE2EConfig) {
       console.log(
         `  Created WhiteWind record with custom fields: ${createdRkey}`,
       );
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Update with new content and FORCE fields
       const updatedContent = `# New Title\n\nUpdated content: ${Date.now()}`;
@@ -605,7 +530,7 @@ if (hasE2EConfig) {
       const existingRecord = await (async () => {
         if (!updateConfig.rkey) return undefined;
         try {
-          const response = await getRecord(
+          const response = await getE2ERecord(
             client,
             identifier,
             updateConfig.collection,
@@ -636,10 +561,10 @@ if (hasE2EConfig) {
       expect(updateResult.uri).toContain(createdRkey);
 
       console.log(`  Updated record with forceFields=true`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000);
 
       // Verify fields were forced to new values
-      const afterUpdate = await getRecord(
+      const afterUpdate = await getE2ERecord(
         client,
         identifier,
         config.collection,
@@ -655,10 +580,10 @@ if (hasE2EConfig) {
       );
 
       // Cleanup
-      await deleteRecord(client, identifier, config.collection, createdRkey);
+      await deleteE2ERecord(client, identifier, config.collection, createdRkey);
       console.log(`  Cleaned up record: ${createdRkey}`);
     } finally {
-      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      await cleanupTestDir(tempDir);
       Deno.env.delete("COLLECTION");
       Deno.env.delete("FILE_PATH");
       Deno.env.delete("RKEY");

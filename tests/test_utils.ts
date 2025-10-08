@@ -237,3 +237,197 @@ export async function runCommand(
 export function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Run the putrecord CLI command and capture output.
+ * Specifically for testing the CLI end-to-end.
+ *
+ * @param args - CLI arguments (e.g., ["--force-fields"])
+ * @param env - Environment variables to pass to the command
+ * @returns Object with success flag, stdout, and stderr
+ *
+ * @example
+ * ```ts
+ * const result = await runCLI(["--force-fields"], {
+ *   PDS_URL: "https://bsky.social",
+ *   IDENTIFIER: "user.bsky.social",
+ *   APP_PASSWORD: "xxxx",
+ *   COLLECTION: "com.whtwnd.blog.entry",
+ *   FILE_PATH: "/path/to/file.md",
+ * });
+ * expect(result.success).toBe(true);
+ * ```
+ */
+export async function runCLI(
+  args: string[],
+  env?: Record<string, string>,
+): Promise<{ success: boolean; stdout: string; stderr: string }> {
+  return await runCommand("deno", [
+    "run",
+    "--allow-all",
+    "src/main.ts",
+    ...args,
+  ], {
+    env,
+  });
+}
+
+// ============================================================================
+// E2E Test Utilities for AT Protocol / PDS Operations
+// ============================================================================
+
+// Import AT Protocol types only when this module is used in E2E tests
+import type { Client } from "@atcute/client";
+import type {} from "@atcute/atproto";
+import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
+
+/**
+ * Setup an authenticated AT Protocol client using environment variables.
+ * Reads PDS_URL, IDENTIFIER, and APP_PASSWORD from environment.
+ *
+ * @returns Authenticated client and identifier
+ * @throws If required environment variables are missing
+ *
+ * @example
+ * ```ts
+ * const envVars = await loadE2EConfig();
+ * if (envVars) {
+ *   const { client, identifier } = await setupE2EClient(envVars);
+ *   // Use client for PDS operations
+ * }
+ * ```
+ */
+export async function setupE2EClient(
+  envVars: Record<string, string>,
+): Promise<{ client: Client; identifier: string }> {
+  const { CredentialManager, Client } = await import("@atcute/client");
+
+  const pdsUrl = envVars["PDS_URL"];
+  const identifier = envVars["IDENTIFIER"];
+  const password = envVars["APP_PASSWORD"];
+
+  if (!pdsUrl || !identifier || !password) {
+    throw new Error(
+      "Missing required E2E configuration: PDS_URL, IDENTIFIER, or APP_PASSWORD",
+    );
+  }
+
+  const manager = new CredentialManager({ service: pdsUrl });
+  const client = new Client({ handler: manager });
+
+  await manager.login({
+    identifier,
+    password,
+  });
+
+  return { client, identifier };
+}
+
+/**
+ * Delete a record from the PDS (for test cleanup).
+ * Ignores errors - safe to call even if record doesn't exist.
+ *
+ * @param client - Authenticated AT Protocol client
+ * @param identifier - Actor identifier (DID or handle)
+ * @param collection - Collection NSID (e.g., "com.whtwnd.blog.entry")
+ * @param rkey - Record key
+ *
+ * @example
+ * ```ts
+ * await deleteE2ERecord(client, identifier, "com.whtwnd.blog.entry", "abc123");
+ * ```
+ */
+export async function deleteE2ERecord(
+  client: Client,
+  identifier: string,
+  collection: string,
+  rkey: string,
+): Promise<void> {
+  try {
+    const { ok } = await import("@atcute/client");
+    await ok(
+      client.post("com.atproto.repo.deleteRecord", {
+        input: {
+          repo: identifier as ActorIdentifier,
+          collection: collection as Nsid,
+          rkey,
+        },
+      }),
+    );
+  } catch (_error) {
+    // Ignore errors during cleanup - record might not exist
+  }
+}
+
+/**
+ * Retrieve a record from the PDS.
+ *
+ * @param client - Authenticated AT Protocol client
+ * @param identifier - Actor identifier (DID or handle)
+ * @param collection - Collection NSID (e.g., "com.whtwnd.blog.entry")
+ * @param rkey - Record key
+ * @returns The record response with value property
+ *
+ * @example
+ * ```ts
+ * const record = await getE2ERecord(client, identifier, "com.whtwnd.blog.entry", "abc123");
+ * expect(record.value.title).toBe("My Blog Post");
+ * ```
+ */
+export async function getE2ERecord(
+  client: Client,
+  identifier: string,
+  collection: string,
+  rkey: string,
+): Promise<{ value: Record<string, unknown> }> {
+  const { ok } = await import("@atcute/client");
+  const response = await ok(
+    client.get("com.atproto.repo.getRecord", {
+      params: {
+        repo: identifier as ActorIdentifier,
+        collection: collection as Nsid,
+        rkey,
+      },
+    }),
+  );
+  return response as { value: Record<string, unknown> };
+}
+
+/**
+ * Update a record on the PDS (putRecord operation).
+ * Useful for manually modifying records in E2E tests before testing client behavior.
+ *
+ * @param client - Authenticated AT Protocol client
+ * @param identifier - Actor identifier (DID or handle)
+ * @param collection - Collection NSID (e.g., "com.whtwnd.blog.entry")
+ * @param rkey - Record key
+ * @param record - The record object to save
+ *
+ * @example
+ * ```ts
+ * await updateE2ERecord(client, identifier, "com.whtwnd.blog.entry", "abc123", {
+ *   ...existingRecord,
+ *   title: "Custom Title",
+ *   visibility: "author",
+ * });
+ * ```
+ */
+export async function updateE2ERecord(
+  client: Client,
+  identifier: string,
+  collection: string,
+  rkey: string,
+  record: Record<string, unknown>,
+): Promise<void> {
+  const { ok } = await import("@atcute/client");
+  await ok(
+    client.post("com.atproto.repo.putRecord", {
+      input: {
+        repo: identifier as ActorIdentifier,
+        collection: collection as Nsid,
+        rkey,
+        record,
+      },
+    }),
+  );
+}
