@@ -8,11 +8,9 @@
   "license": "MIT",
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check && deno task test",
-    "upload": "deno run --allow-net --allow-env --allow-read src/main.ts",
     "test": "deno test --allow-net --allow-env --allow-read --allow-write tests/lib.test.ts",
     "test:e2e": "deno test --allow-net --allow-env --allow-read --allow-write tests/lib.e2e.test.ts",
-    "test:all": "deno test --allow-net --allow-env --allow-read --allow-write",
-    "secrets": "gh secret set -f .env"
+    "test:all": "deno test --allow-net --allow-env --allow-read --allow-write"
   },
   "imports": {
     "@atcute/atproto": "npm:@atcute/atproto@^3.1.4",

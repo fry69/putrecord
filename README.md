@@ -50,14 +50,6 @@ Or add to your `deno.json`:
 }
 ```
 
-### Clone from GitHub
-
-```bash
-git clone https://github.com/fry69/putrecord.git
-cd putrecord
-deno task upload
-```
-
 ## Two Modes of Operation
 
 ### Create Mode (Manual)
@@ -205,9 +197,6 @@ cp workflow.yaml .github/workflows/putrecord.yaml
 ```bash
 # Set all secrets from your .env file
 gh secret set -f .env
-
-# Or using deno task
-deno task secrets
 ```
 
 Or manually via GitHub web interface: Settings → Secrets and variables → Actions
