@@ -8,6 +8,7 @@
   "license": "MIT",
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check && deno task test:unit",
+    "test": "deno task test:all",
     "test:unit": "deno test -A tests/lib.test.ts tests/init.test.ts",
     "test:e2e": "deno test -A tests/lib.e2e.test.ts tests/main.e2e.test.ts",
     "test:all": "deno test -A"

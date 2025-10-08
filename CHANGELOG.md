@@ -8,6 +8,8 @@
 - add end to end tests for WhiteWind support incl. CLI
 - document end to end tests
 - cleanup tasks
+- fix accidentally deleted test task
+- fix CI worflow dependcy
 
 ### v0.1.0
 

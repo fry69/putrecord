@@ -1,8 +1,10 @@
 name: Publish JSR
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - "CI" # must match the CI workflow's `name:` exactly
+    types:
+      - completed
 
 jobs:
   publish:
