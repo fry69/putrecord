@@ -11,6 +11,8 @@ Welcome to the `@fry69/putrecord` documentation!
   automation
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Contributing, testing, and maintenance
   guide
+- **[E2E_TESTING.md](E2E_TESTING.md)** - End-to-end testing guide for WhiteWind
+  features
 
 ## Documentation Structure
 

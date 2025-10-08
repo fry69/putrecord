@@ -188,7 +188,7 @@ const recordForced = buildRecord(
   "com.whtwnd.blog.entry",
   markdown,
   existingRecord,
-  true
+  true,
 );
 // Returns:
 // {

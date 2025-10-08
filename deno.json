@@ -11,7 +11,7 @@
     "test": "deno test --allow-net --allow-env --allow-read --allow-write tests/lib.test.ts",
     "test:init": "deno test --allow-net --allow-env --allow-read --allow-write --allow-run tests/init.test.ts",
     "test:unit": "deno test --allow-net --allow-env --allow-read --allow-write --allow-run tests/lib.test.ts tests/init.test.ts",
-    "test:e2e": "deno test --allow-net --allow-env --allow-read --allow-write tests/lib.e2e.test.ts",
+    "test:e2e": "deno test --allow-net --allow-env --allow-read --allow-write --allow-run tests/lib.e2e.test.ts tests/main.e2e.test.ts",
     "test:all": "deno test --allow-net --allow-env --allow-read --allow-write --allow-run"
   },
   "imports": {

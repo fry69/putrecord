@@ -288,6 +288,382 @@ if (hasE2EConfig) {
       Deno.env.delete("FILE_PATH");
     }
   });
+
+  Deno.test("E2E: WhiteWind - Create with default visibility", async () => {
+    const { client, identifier } = await setupClient();
+    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+
+    try {
+      const testFile = `${tempDir}/whitewind-create.md`;
+      const testContent =
+        `# WhiteWind Test Post\n\nCreated at: ${Date.now()}\n\nThis is a test post.`;
+      await Deno.writeTextFile(testFile, testContent);
+
+      Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
+      Deno.env.set("FILE_PATH", testFile);
+      Deno.env.delete("RKEY");
+
+      const config = loadConfig();
+      const content = await readFile(testFile);
+      const record = buildRecord(config.collection, content);
+
+      // Verify default WhiteWind fields
+      expect(record.visibility).toBe("public");
+      expect(record.title).toBe("WhiteWind Test Post");
+
+      // Create record
+      const result = await createRecord(client, config, record);
+      expect(result.uri).toBeTruthy();
+      expect(result.rkey).toBeTruthy();
+
+      console.log(
+        `  Created WhiteWind record with default visibility: ${result.rkey}`,
+      );
+
+      // Wait for propagation
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Verify the record
+      const retrieved = await getRecord(
+        client,
+        identifier,
+        config.collection,
+        result.rkey,
+      );
+      expect((retrieved.value as { visibility: string }).visibility).toBe(
+        "public",
+      );
+      expect((retrieved.value as { title: string }).title).toBe(
+        "WhiteWind Test Post",
+      );
+
+      // Cleanup
+      await deleteRecord(client, identifier, config.collection, result.rkey);
+      console.log(`  Cleaned up record: ${result.rkey}`);
+    } finally {
+      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      Deno.env.delete("COLLECTION");
+      Deno.env.delete("FILE_PATH");
+    }
+  });
+
+  Deno.test("E2E: WhiteWind - Preserve custom title on update", async () => {
+    const { client, identifier } = await setupClient();
+    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    let createdRkey = "";
+
+    try {
+      const testFile = `${tempDir}/whitewind-preserve-title.md`;
+      const initialContent =
+        `# Initial Title\n\nInitial content: ${Date.now()}`;
+      await Deno.writeTextFile(testFile, initialContent);
+
+      Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
+      Deno.env.set("FILE_PATH", testFile);
+      Deno.env.delete("RKEY");
+
+      const config = loadConfig();
+
+      // Create initial record with custom title
+      const initialRecord = buildRecord(config.collection, initialContent);
+      // Manually set a custom title different from the extracted one
+      initialRecord.title = "My Custom Title";
+      const createResult = await createRecord(client, config, initialRecord);
+      createdRkey = createResult.rkey;
+
+      console.log(
+        `  Created WhiteWind record with custom title: ${createdRkey}`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Verify custom title was saved
+      const beforeUpdate = await getRecord(
+        client,
+        identifier,
+        config.collection,
+        createdRkey,
+      );
+      expect((beforeUpdate.value as { title: string }).title).toBe(
+        "My Custom Title",
+      );
+
+      // Update with different content (new heading)
+      const updatedContent =
+        `# Different Heading\n\nUpdated content: ${Date.now()}`;
+      await Deno.writeTextFile(testFile, updatedContent);
+
+      Deno.env.set("RKEY", createdRkey);
+      const updateConfig = loadConfig();
+
+      // Fetch existing record to simulate real usage
+      const existingRecord = await (async () => {
+        if (!updateConfig.rkey) return undefined;
+        try {
+          const response = await getRecord(
+            client,
+            identifier,
+            updateConfig.collection,
+            updateConfig.rkey,
+          );
+          return response.value as Record<string, unknown>;
+        } catch {
+          return undefined;
+        }
+      })();
+
+      // Build updated record WITH existing record (should preserve title)
+      const updatedRecord = buildRecord(
+        updateConfig.collection,
+        updatedContent,
+        existingRecord,
+        false, // Don't force fields
+      );
+
+      expect(updatedRecord.title).toBe("My Custom Title"); // Preserved!
+
+      const updateResult = await uploadRecord(
+        client,
+        updateConfig,
+        updatedRecord,
+      );
+      expect(updateResult.uri).toContain(createdRkey);
+
+      console.log(`  Updated record while preserving custom title`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Verify title was preserved
+      const afterUpdate = await getRecord(
+        client,
+        identifier,
+        config.collection,
+        createdRkey,
+      );
+      expect((afterUpdate.value as { title: string }).title).toBe(
+        "My Custom Title",
+      );
+      expect((afterUpdate.value as { content: string }).content).toBe(
+        updatedContent,
+      );
+
+      console.log(`  ✓ Custom title preserved after update`);
+
+      // Cleanup
+      await deleteRecord(client, identifier, config.collection, createdRkey);
+      console.log(`  Cleaned up record: ${createdRkey}`);
+    } finally {
+      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      Deno.env.delete("COLLECTION");
+      Deno.env.delete("FILE_PATH");
+      Deno.env.delete("RKEY");
+    }
+  });
+
+  Deno.test("E2E: WhiteWind - Preserve custom visibility on update", async () => {
+    const { client, identifier } = await setupClient();
+    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    let createdRkey = "";
+
+    try {
+      const testFile = `${tempDir}/whitewind-preserve-visibility.md`;
+      const initialContent =
+        `# Visibility Test\n\nInitial content: ${Date.now()}`;
+      await Deno.writeTextFile(testFile, initialContent);
+
+      Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
+      Deno.env.set("FILE_PATH", testFile);
+      Deno.env.delete("RKEY");
+
+      const config = loadConfig();
+
+      // Create initial record with custom visibility
+      const initialRecord = buildRecord(config.collection, initialContent);
+      initialRecord.visibility = "author"; // Set to author-only
+      const createResult = await createRecord(client, config, initialRecord);
+      createdRkey = createResult.rkey;
+
+      console.log(
+        `  Created WhiteWind record with visibility="author": ${createdRkey}`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Verify custom visibility was saved
+      const beforeUpdate = await getRecord(
+        client,
+        identifier,
+        config.collection,
+        createdRkey,
+      );
+      expect((beforeUpdate.value as { visibility: string }).visibility).toBe(
+        "author",
+      );
+
+      // Update with new content
+      const updatedContent =
+        `# Visibility Test\n\nUpdated content: ${Date.now()}`;
+      await Deno.writeTextFile(testFile, updatedContent);
+
+      Deno.env.set("RKEY", createdRkey);
+      const updateConfig = loadConfig();
+
+      // Fetch existing record
+      const existingRecord = await (async () => {
+        if (!updateConfig.rkey) return undefined;
+        try {
+          const response = await getRecord(
+            client,
+            identifier,
+            updateConfig.collection,
+            updateConfig.rkey,
+          );
+          return response.value as Record<string, unknown>;
+        } catch {
+          return undefined;
+        }
+      })();
+
+      // Build updated record WITH existing record (should preserve visibility)
+      const updatedRecord = buildRecord(
+        updateConfig.collection,
+        updatedContent,
+        existingRecord,
+        false, // Don't force fields
+      );
+
+      expect(updatedRecord.visibility).toBe("author"); // Preserved!
+
+      const updateResult = await uploadRecord(
+        client,
+        updateConfig,
+        updatedRecord,
+      );
+      expect(updateResult.uri).toContain(createdRkey);
+
+      console.log(`  Updated record while preserving custom visibility`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Verify visibility was preserved
+      const afterUpdate = await getRecord(
+        client,
+        identifier,
+        config.collection,
+        createdRkey,
+      );
+      expect((afterUpdate.value as { visibility: string }).visibility).toBe(
+        "author",
+      );
+
+      console.log(`  ✓ Custom visibility preserved after update`);
+
+      // Cleanup
+      await deleteRecord(client, identifier, config.collection, createdRkey);
+      console.log(`  Cleaned up record: ${createdRkey}`);
+    } finally {
+      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      Deno.env.delete("COLLECTION");
+      Deno.env.delete("FILE_PATH");
+      Deno.env.delete("RKEY");
+    }
+  });
+
+  Deno.test("E2E: WhiteWind - Force fields override on update", async () => {
+    const { client, identifier } = await setupClient();
+    const tempDir = await Deno.makeTempDir({ prefix: "putrecord_e2e_" });
+    let createdRkey = "";
+
+    try {
+      const testFile = `${tempDir}/whitewind-force-fields.md`;
+      const initialContent =
+        `# Original Title\n\nInitial content: ${Date.now()}`;
+      await Deno.writeTextFile(testFile, initialContent);
+
+      Deno.env.set("COLLECTION", "com.whtwnd.blog.entry");
+      Deno.env.set("FILE_PATH", testFile);
+      Deno.env.delete("RKEY");
+
+      const config = loadConfig();
+
+      // Create initial record with custom title and visibility
+      const initialRecord = buildRecord(config.collection, initialContent);
+      initialRecord.title = "Custom Title";
+      initialRecord.visibility = "author";
+      const createResult = await createRecord(client, config, initialRecord);
+      createdRkey = createResult.rkey;
+
+      console.log(
+        `  Created WhiteWind record with custom fields: ${createdRkey}`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Update with new content and FORCE fields
+      const updatedContent = `# New Title\n\nUpdated content: ${Date.now()}`;
+      await Deno.writeTextFile(testFile, updatedContent);
+
+      Deno.env.set("RKEY", createdRkey);
+      const updateConfig = loadConfig();
+
+      // Fetch existing record
+      const existingRecord = await (async () => {
+        if (!updateConfig.rkey) return undefined;
+        try {
+          const response = await getRecord(
+            client,
+            identifier,
+            updateConfig.collection,
+            updateConfig.rkey,
+          );
+          return response.value as Record<string, unknown>;
+        } catch {
+          return undefined;
+        }
+      })();
+
+      // Build updated record WITH forceFields=true (should extract new values)
+      const updatedRecord = buildRecord(
+        updateConfig.collection,
+        updatedContent,
+        existingRecord,
+        true, // Force fields!
+      );
+
+      expect(updatedRecord.title).toBe("New Title"); // Extracted from content!
+      expect(updatedRecord.visibility).toBe("public"); // Reset to default!
+
+      const updateResult = await uploadRecord(
+        client,
+        updateConfig,
+        updatedRecord,
+      );
+      expect(updateResult.uri).toContain(createdRkey);
+
+      console.log(`  Updated record with forceFields=true`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Verify fields were forced to new values
+      const afterUpdate = await getRecord(
+        client,
+        identifier,
+        config.collection,
+        createdRkey,
+      );
+      expect((afterUpdate.value as { title: string }).title).toBe("New Title");
+      expect((afterUpdate.value as { visibility: string }).visibility).toBe(
+        "public",
+      );
+
+      console.log(
+        `  ✓ Fields forced to new extracted/default values with forceFields=true`,
+      );
+
+      // Cleanup
+      await deleteRecord(client, identifier, config.collection, createdRkey);
+      console.log(`  Cleaned up record: ${createdRkey}`);
+    } finally {
+      await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      Deno.env.delete("COLLECTION");
+      Deno.env.delete("FILE_PATH");
+      Deno.env.delete("RKEY");
+    }
+  });
 } else {
   console.log("⊘ No .env.e2e file found, skipping E2E tests\n");
 }
