@@ -160,7 +160,8 @@ Deno.test("init - should overwrite workflow file with --force", async () => {
 
   try {
     // First init
-    await runInit(tempDir);
+    const firstInit = await runInit(tempDir);
+    expect(firstInit.success).toBe(true);
 
     // Modify the workflow file
     const workflowFile = joinPath(
@@ -169,6 +170,10 @@ Deno.test("init - should overwrite workflow file with --force", async () => {
       "workflows",
       "putrecord.yaml",
     );
+    // Ensure directory exists (might be needed on Windows)
+    await Deno.mkdir(joinPath(tempDir, ".github", "workflows"), {
+      recursive: true,
+    });
     await Deno.writeTextFile(workflowFile, "modified content");
 
     // Second init with --force
@@ -192,7 +197,8 @@ Deno.test("init - should overwrite .env.example with --force", async () => {
 
   try {
     // First init
-    await runInit(tempDir);
+    const firstInit = await runInit(tempDir);
+    expect(firstInit.success).toBe(true);
 
     // Modify the .env.example file
     const envFile = joinPath(tempDir, ".env.example");
