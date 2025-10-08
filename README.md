@@ -3,6 +3,8 @@
 Upload files as AT Protocol records to a PDS. Built with
 [atcute](https://github.com/mary-ext/atcute) and Deno.
 
+Supports any file type that can be uploaded via AT Protocol.
+
 ## Configuration
 
 Environment variables:
@@ -12,7 +14,7 @@ Environment variables:
 - `APP_PASSWORD` - App password (not main account password)
 - `COLLECTION` - Lexicon collection (e.g., `com.whtwnd.blog.entry`)
 - `RKEY` - Record key
-- `MARKDOWN_PATH` - Path to markdown file
+- `FILE_PATH` - Path to file to upload
 
 ## Usage
 
@@ -48,7 +50,7 @@ IDENTIFIER=alice.bsky.social
 APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
 COLLECTION=com.whtwnd.blog.entry
 RKEY=my-first-post
-MARKDOWN_PATH=./posts/blog-post.md
+FILE_PATH=./posts/blog-post.md
 ```
 
 Create `posts/blog-post.md`:
@@ -81,9 +83,9 @@ requires manual testing or network mocking.
 
 Loads and validates environment variables.
 
-### `readMarkdown(path: string): Promise<string>`
+### `readFile(path: string): Promise<string>`
 
-Reads markdown file content.
+Reads file content.
 
 ### `createBlogRecord(content: string): Record<string, unknown>`
 

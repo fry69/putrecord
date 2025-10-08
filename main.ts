@@ -1,5 +1,5 @@
 /**
- * Minimal script to upload a markdown file to a PDS via AT Protocol.
+ * Minimal script to upload a file to a PDS via AT Protocol.
  * Uses atcute library for authentication and record operations.
  */
 
@@ -17,7 +17,7 @@ interface Config {
   password: string; // App password
   collection: string; // e.g., "com.whtwnd.blog.entry"
   rkey: string; // Record key
-  markdownPath: string; // Path to markdown file
+  filePath: string; // Path to file to upload
 }
 
 /**
@@ -30,7 +30,7 @@ function loadConfig(): Config {
     "APP_PASSWORD",
     "COLLECTION",
     "RKEY",
-    "MARKDOWN_PATH",
+    "FILE_PATH",
   ];
 
   for (const key of required) {
@@ -45,14 +45,14 @@ function loadConfig(): Config {
     password: Deno.env.get("APP_PASSWORD")!,
     collection: Deno.env.get("COLLECTION")!,
     rkey: Deno.env.get("RKEY")!,
-    markdownPath: Deno.env.get("MARKDOWN_PATH")!,
+    filePath: Deno.env.get("FILE_PATH")!,
   };
 }
 
 /**
- * Read markdown file content
+ * Read file content
  */
-async function readMarkdown(path: string): Promise<string> {
+async function readFile(path: string): Promise<string> {
   try {
     return await Deno.readTextFile(path);
   } catch (error) {
@@ -107,9 +107,9 @@ async function main() {
     console.log("Loading configuration...");
     const config = loadConfig();
 
-    // Read markdown content
-    console.log(`Reading file: ${config.markdownPath}`);
-    const content = await readMarkdown(config.markdownPath);
+    // Read file content
+    console.log(`Reading file: ${config.filePath}`);
+    const content = await readFile(config.filePath);
     console.log(`✓ File read (${content.length} characters)`);
 
     // Authenticate
@@ -139,7 +139,7 @@ async function main() {
 }
 
 // Export functions for testing
-export { createBlogRecord, loadConfig, readMarkdown, uploadRecord };
+export { createBlogRecord, loadConfig, readFile, uploadRecord };
 
 // Run if executed directly
 if (import.meta.main) {
