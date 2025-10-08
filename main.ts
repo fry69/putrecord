@@ -24,7 +24,8 @@
  * @module
  */
 
-import { Client, CredentialManager, ok } from "@atcute/client";
+import { ok } from "@atcute/client";
+import type { Client } from "@atcute/client";
 import type {} from "@atcute/atproto"; // Import AT Protocol types
 import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
 
@@ -223,11 +224,6 @@ async function createRecord(
   // Extract rkey from URI (format: at://did:plc:.../collection/rkey)
   const rkey = response.uri.split("/").pop() || "";
 
-  console.log(`✓ Record created successfully`);
-  console.log(`  URI: ${response.uri}`);
-  console.log(`  CID: ${response.cid}`);
-  console.log(`  RKEY: ${rkey}`);
-
   return { uri: response.uri, cid: response.cid, rkey };
 }
 
@@ -270,71 +266,11 @@ async function uploadRecord(
     }),
   );
 
-  console.log(`✓ Record updated successfully`);
-  console.log(`  URI: ${response.uri}`);
-  console.log(`  CID: ${response.cid}`);
-
   return { uri: response.uri, cid: response.cid };
 }
 
-/**
- * Main execution
- */
-async function main() {
-  try {
-    // Load configuration
-    console.log("Loading configuration...");
-    const config = loadConfig();
-
-    // Read file content
-    console.log(`Reading file: ${config.filePath}`);
-    const content = await readFile(config.filePath);
-    console.log(`✓ File read (${content.length} characters)`);
-
-    // Authenticate
-    console.log(`Authenticating as: ${config.identifier}`);
-    const manager = new CredentialManager({ service: config.pdsUrl });
-    const client = new Client({ handler: manager });
-
-    await manager.login({
-      identifier: config.identifier,
-      password: config.password,
-    });
-    console.log("✓ Authentication successful");
-
-    // Build record from file content
-    console.log(`Building record from file content...`);
-    const record = buildRecord(config.collection, content);
-
-    // Upload or create record based on whether RKEY is provided
-    if (config.rkey) {
-      console.log(
-        `Updating existing record: ${config.collection}/${config.rkey}...`,
-      );
-      await uploadRecord(client, config, record);
-      console.log("\n✓ Record updated successfully!");
-    } else {
-      console.log(`Creating new record in ${config.collection}...`);
-      const result = await createRecord(client, config, record);
-      console.log("\n✓ New record created successfully!");
-      console.log(
-        `\n⚠️  Save this RKEY for future updates: ${result.rkey}`,
-      );
-      console.log(
-        `   Add to your .env file: RKEY=${result.rkey}`,
-      );
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("\n✗ Error:", message);
-    Deno.exit(1);
-  }
-}
-
-// Export functions for testing
+// Export all library functions
 export { buildRecord, createRecord, loadConfig, readFile, uploadRecord };
 
-// Run if executed directly
-if (import.meta.main) {
-  main();
-}
+// Export types for users who need them
+export type { Config };

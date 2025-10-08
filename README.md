@@ -12,14 +12,31 @@ assumptions about file format or lexicon schema.
 
 ```bash
 # Run directly with Deno
-deno run -A jsr:@fry69/putrecord
+deno run -A jsr:@fry69/putrecord/cli
+
+# With options
+deno run -A jsr:@fry69/putrecord/cli --quiet
+deno run -A jsr:@fry69/putrecord/cli --help
+deno run -A jsr:@fry69/putrecord/cli --version
 ```
 
 ### As a Library
 
 ```typescript
-// Import from JSR
-import { buildRecord, createRecord, uploadRecord } from "jsr:@fry69/putrecord";
+// Import library functions from JSR
+import {
+  buildRecord,
+  createRecord,
+  loadConfig,
+  readFile,
+  uploadRecord,
+} from "jsr:@fry69/putrecord";
+
+// Library functions are quiet by default (no console output)
+const config = loadConfig();
+const content = await readFile(config.filePath);
+const record = buildRecord(config.collection, content);
+// ... use createRecord or uploadRecord as needed
 ```
 
 Or add to your `deno.json`:
@@ -79,6 +96,24 @@ The script intelligently handles different content types:
   `createdAt` fields
 
 This allows flexibility to work with any AT Protocol collection.
+
+## CLI Options
+
+The CLI supports the following flags:
+
+- `--quiet` - Suppress informational output (only errors are shown)
+- `--help` - Show usage information
+- `--version` - Show version number
+
+Example:
+
+```bash
+# Quiet mode (useful for automation)
+deno run -A jsr:@fry69/putrecord/cli --quiet
+
+# Show help
+deno run -A jsr:@fry69/putrecord/cli --help
+```
 
 ## Usage
 
@@ -211,15 +246,27 @@ These tests verify:
 
 The E2E tests automatically clean up created records.
 
-## API
+## Library API
+
+All library functions are **quiet by default** - they do not write to console.
+This makes them ideal for programmatic usage, automation, and workflows.
 
 ### `loadConfig(): Config`
 
 Loads and validates environment variables. RKEY is optional.
 
+**Returns**: `Config` object with `pdsUrl`, `identifier`, `appPassword`,
+`collection`, `rkey?`, and `filePath`.
+
+**Throws**: Error if required environment variables are missing.
+
 ### `readFile(path: string): Promise<string>`
 
 Reads file content as text.
+
+**Returns**: File content as string.
+
+**Throws**: Error if file cannot be read.
 
 ### `buildRecord(collection: string, content: string): Record<string, unknown>`
 
@@ -229,20 +276,40 @@ Builds an AT Protocol record from content:
 - Otherwise: Wraps content in a structure with `$type`, `content`, and
   `createdAt` fields
 
+**Returns**: Record object ready for AT Protocol.
+
+**Throws**: Error if content is invalid JSON (when attempting to parse).
+
 ### `createRecord(client, config, record): Promise<{ uri, cid, rkey }>`
 
 Creates a new record via `com.atproto.repo.createRecord`. Returns the
 auto-generated RKEY.
+
+**Returns**: Object with `uri`, `cid`, and `rkey` from the PDS response.
+
+**Throws**: Error if record creation fails.
 
 ### `uploadRecord(client, config, record): Promise<{ uri, cid }>`
 
 Updates an existing record via `com.atproto.repo.putRecord`. Requires RKEY in
 config.
 
+**Returns**: Object with `uri` and `cid` from the PDS response.
+
+**Throws**: Error if RKEY is not provided or update fails.
+
+## Library vs CLI
+
+- **Library (`jsr:@fry69/putrecord`)**: Pure functions with no console output.
+  Use in code, automation, workflows.
+- **CLI (`jsr:@fry69/putrecord/cli`)**: User-friendly command-line interface
+  with interactive output. Use `--quiet` flag to suppress non-error messages.
+
 ## Repository Files
 
-- **`main.ts`** - Main script with upload logic
-- **`main.test.ts`** - Unit tests
+- **`main.ts`** - Library module with core functions (no console output)
+- **`cli.ts`** - CLI wrapper with interactive output and argument parsing
+- **`main.test.ts`** - Unit tests for library functions
 - **`main.e2e.test.ts`** - End-to-end integration tests
 - **`workflow.yaml`** - Example GitHub Actions workflow (copy to
   `.github/workflows/` to use)

@@ -2,6 +2,7 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@^1.0.14": "1.0.15",
+    "jsr:@std/cli@^1.0.23": "1.0.23",
     "jsr:@std/dotenv@0.225.5": "0.225.5",
     "jsr:@std/expect@^1.0.17": "1.0.17",
     "jsr:@std/internal@^1.0.10": "1.0.12",
@@ -14,6 +15,12 @@
   "jsr": {
     "@std/assert@1.0.15": {
       "integrity": "d64018e951dbdfab9777335ecdb000c0b4e3df036984083be219ce5941e4703b",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.12"
+      ]
+    },
+    "@std/cli@1.0.23": {
+      "integrity": "bf95b7a9425ba2af1ae5a6359daf58c508f2decf711a76ed2993cd352498ccca",
       "dependencies": [
         "jsr:@std/internal@^1.0.12"
       ]
@@ -77,6 +84,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@std/cli@^1.0.23",
       "jsr:@std/expect@^1.0.17",
       "npm:@atcute/atproto@^3.1.4",
       "npm:@atcute/client@^4.0.3",

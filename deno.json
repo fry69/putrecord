@@ -1,11 +1,14 @@
 {
   "name": "@fry69/putrecord",
   "version": "0.1.0",
-  "exports": "./main.ts",
+  "exports": {
+    ".": "./main.ts",
+    "./cli": "./cli.ts"
+  },
   "license": "MIT",
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check && deno task test",
-    "upload": "deno run --allow-net --allow-env --allow-read main.ts",
+    "upload": "deno run --allow-net --allow-env --allow-read cli.ts",
     "test": "deno test --allow-net --allow-env --allow-read --allow-write main.test.ts",
     "test:e2e": "deno test --allow-net --allow-env --allow-read --allow-write main.e2e.test.ts",
     "test:all": "deno test --allow-net --allow-env --allow-read --allow-write",
@@ -15,6 +18,7 @@
     "@atcute/atproto": "npm:@atcute/atproto@^3.1.4",
     "@atcute/client": "npm:@atcute/client@^4.0.3",
     "@atcute/lexicons": "npm:@atcute/lexicons@^1.1.1",
+    "@std/cli": "jsr:@std/cli@^1.0.23",
     "@std/expect": "jsr:@std/expect@^1.0.17"
   }
 }
