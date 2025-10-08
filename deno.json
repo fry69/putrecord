@@ -4,7 +4,7 @@
   "exports": "./main.ts",
   "license": "MIT",
   "tasks": {
-    "check": "deno fmt --check && deno lint && deno check main.ts",
+    "check": "deno fmt --check && deno lint && deno check && deno task test",
     "upload": "deno run --allow-net --allow-env --allow-read main.ts",
     "test": "deno test --allow-net --allow-env --allow-read --allow-write main.test.ts",
     "test:e2e": "deno test --allow-net --allow-env --allow-read --allow-write main.e2e.test.ts",
