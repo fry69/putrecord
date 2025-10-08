@@ -309,10 +309,11 @@ config.
 
 ## Repository Files
 
-- **`main.ts`** - CLI entry point with interactive output and argument parsing
-- **`lib.ts`** - Library module with core functions (no console output)
-- **`main.test.ts`** - Unit tests for library functions
-- **`main.e2e.test.ts`** - End-to-end integration tests
+- **`src/main.ts`** - CLI entry point with interactive output and argument
+  parsing
+- **`src/lib.ts`** - Library module with core functions (no console output)
+- **`tests/lib.test.ts`** - Unit tests for library functions
+- **`tests/lib.e2e.test.ts`** - End-to-end integration tests
 - **`workflow.yaml`** - Example GitHub Actions workflow (copy to
   `.github/workflows/` to use)
 - **`.env.example`** - Example environment configuration
