@@ -1,7 +1,16 @@
 /**
  * End-to-end CLI tests for main.ts
- * These tests run the actual CLI command against a real PDS using credentials from .env.e2e
- * They only run if .env.e2e exists
+ *
+ * These tests run the actual CLI command against a real PDS using credentials
+ * from .env.e2e. They only run if .env.e2e exists.
+ *
+ * Note on test helpers:
+ * - runCLI(): Wrapper for executing the CLI with proper args/env
+ * - setupE2EClient/getE2ERecord/deleteE2ERecord/updateE2ERecord(): Thin AT Protocol API wrappers
+ *
+ * The AT Protocol helpers are used for test setup and verification (e.g., manually
+ * setting custom title/visibility to test CLI preservation behavior). They're
+ * transparent wrappers that directly map to com.atproto.repo.* API calls.
  */
 
 import { expect } from "@std/expect";

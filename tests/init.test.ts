@@ -4,28 +4,7 @@
 
 import { expect } from "@std/expect";
 import { ENV_EXAMPLE_TEMPLATE, WORKFLOW_TEMPLATE } from "../src/templates.ts";
-import {
-  cleanupTestDir,
-  createTestDir,
-  mkdirTestPath,
-  readTestFile,
-  statTestPath,
-  writeTestFile,
-} from "./test_utils.ts";
-
-/**
- * Helper to create a temporary test directory
- */
-async function createTempDir(): Promise<string> {
-  return await createTestDir("putrecord_test_");
-}
-
-/**
- * Helper to clean up test directory
- */
-async function cleanupDir(dir: string) {
-  await cleanupTestDir(dir);
-}
+import { cleanupTestDir, createTestDir, joinPath } from "./test_utils.ts";
 
 /**
  * Helper to run init command in a directory
@@ -62,7 +41,7 @@ async function runInit(
 }
 
 Deno.test("init - should create workflow directory", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     const result = await runInit(tempDir);
@@ -71,15 +50,16 @@ Deno.test("init - should create workflow directory", async () => {
     expect(result.output).toContain("Created directory: .github/workflows");
 
     // Verify directory exists
-    const stat = await statTestPath(tempDir, [".github", "workflows"]);
+    const workflowPath = joinPath(tempDir, ".github", "workflows");
+    const stat = await Deno.stat(workflowPath);
     expect(stat.isDirectory).toBe(true);
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should create workflow file with correct content", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     const result = await runInit(tempDir);
@@ -90,19 +70,21 @@ Deno.test("init - should create workflow file with correct content", async () =>
     );
 
     // Verify file exists and has correct content
-    const content = await readTestFile(tempDir, [
+    const workflowFile = joinPath(
+      tempDir,
       ".github",
       "workflows",
       "putrecord.yaml",
-    ]);
+    );
+    const content = await Deno.readTextFile(workflowFile);
     expect(content).toBe(WORKFLOW_TEMPLATE);
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should create .env.example with correct content", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     const result = await runInit(tempDir);
@@ -111,15 +93,16 @@ Deno.test("init - should create .env.example with correct content", async () => 
     expect(result.output).toContain("Created: .env.example");
 
     // Verify file exists and has correct content
-    const content = await readTestFile(tempDir, [".env.example"]);
+    const envFile = joinPath(tempDir, ".env.example");
+    const content = await Deno.readTextFile(envFile);
     expect(content).toBe(ENV_EXAMPLE_TEMPLATE);
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should show success message with next steps", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     const result = await runInit(tempDir);
@@ -130,12 +113,12 @@ Deno.test("init - should show success message with next steps", async () => {
     expect(result.output).toContain("Copy .env.example to .env");
     expect(result.output).toContain("Set GitHub repository secrets");
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should skip existing workflow file without --force", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     // First init
@@ -150,12 +133,12 @@ Deno.test("init - should skip existing workflow file without --force", async () 
     );
     expect(result.output).toContain("Use --force to overwrite");
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should skip existing .env.example without --force", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     // First init
@@ -168,23 +151,25 @@ Deno.test("init - should skip existing .env.example without --force", async () =
     expect(result.output).toContain("Skipped: .env.example (already exists)");
     expect(result.output).toContain("Use --force to overwrite");
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should overwrite workflow file with --force", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     // First init
     await runInit(tempDir);
 
     // Modify the workflow file
-    await writeTestFile(
+    const workflowFile = joinPath(
       tempDir,
-      [".github", "workflows", "putrecord.yaml"],
-      "modified content",
+      ".github",
+      "workflows",
+      "putrecord.yaml",
     );
+    await Deno.writeTextFile(workflowFile, "modified content");
 
     // Second init with --force
     const result = await runInit(tempDir, ["--force"]);
@@ -195,26 +180,23 @@ Deno.test("init - should overwrite workflow file with --force", async () => {
     );
 
     // Verify content is restored to template
-    const content = await readTestFile(tempDir, [
-      ".github",
-      "workflows",
-      "putrecord.yaml",
-    ]);
+    const content = await Deno.readTextFile(workflowFile);
     expect(content).toBe(WORKFLOW_TEMPLATE);
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should overwrite .env.example with --force", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     // First init
     await runInit(tempDir);
 
     // Modify the .env.example file
-    await writeTestFile(tempDir, [".env.example"], "modified content");
+    const envFile = joinPath(tempDir, ".env.example");
+    await Deno.writeTextFile(envFile, "modified content");
 
     // Second init with --force
     const result = await runInit(tempDir, ["--force"]);
@@ -223,19 +205,20 @@ Deno.test("init - should overwrite .env.example with --force", async () => {
     expect(result.output).toContain("Created: .env.example (overwritten)");
 
     // Verify content is restored to template
-    const content = await readTestFile(tempDir, [".env.example"]);
+    const content = await Deno.readTextFile(envFile);
     expect(content).toBe(ENV_EXAMPLE_TEMPLATE);
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should work when .github directory already exists", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     // Pre-create .github directory
-    await mkdirTestPath(tempDir, [".github"]);
+    const githubDir = joinPath(tempDir, ".github");
+    await Deno.mkdir(githubDir);
 
     const result = await runInit(tempDir);
 
@@ -245,23 +228,26 @@ Deno.test("init - should work when .github directory already exists", async () =
     );
 
     // Verify workflow file was created
-    const stat = await statTestPath(tempDir, [
+    const workflowFile = joinPath(
+      tempDir,
       ".github",
       "workflows",
       "putrecord.yaml",
-    ]);
+    );
+    const stat = await Deno.stat(workflowFile);
     expect(stat.isFile).toBe(true);
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should work when .github/workflows directory already exists", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     // Pre-create .github/workflows directory
-    await mkdirTestPath(tempDir, [".github", "workflows"], { recursive: true });
+    const workflowsDir = joinPath(tempDir, ".github", "workflows");
+    await Deno.mkdir(workflowsDir, { recursive: true });
 
     const result = await runInit(tempDir);
 
@@ -273,12 +259,12 @@ Deno.test("init - should work when .github/workflows directory already exists", 
       "Created: .github/workflows/putrecord.yaml",
     );
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });
 
 Deno.test("init - should handle quiet mode", async () => {
-  const tempDir = await createTempDir();
+  const tempDir = await createTestDir("putrecord_test_");
 
   try {
     const result = await runInit(tempDir, ["--quiet"]);
@@ -287,6 +273,6 @@ Deno.test("init - should handle quiet mode", async () => {
     // In quiet mode, should have minimal output (only errors or critical info)
     expect(result.output).not.toContain("Initializing putrecord project");
   } finally {
-    await cleanupDir(tempDir);
+    await cleanupTestDir(tempDir);
   }
 });

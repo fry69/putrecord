@@ -4,6 +4,7 @@
 - fix CI worflow dependcy
 - fix init tests failing on Windows
 - created test utility library
+- reduced unnecessary test helper abstrations
 
 ### v0.2.0
 

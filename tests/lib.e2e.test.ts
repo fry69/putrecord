@@ -1,7 +1,16 @@
 /**
  * End-to-end integration tests for lib.ts
+ *
  * These tests run against a real PDS using credentials from .env.e2e
- * They only run if .env.e2e exists
+ * They only run if .env.e2e exists.
+ *
+ * Note on test helpers:
+ * - setupE2EClient(): Authentication boilerplate wrapper
+ * - getE2ERecord/deleteE2ERecord/updateE2ERecord(): Thin AT Protocol API wrappers
+ *
+ * These helpers eliminate duplication but remain transparent - they directly
+ * map to com.atproto.repo.* API calls. The goal is to keep tests focused on
+ * testing library logic, not AT Protocol API mechanics.
  */
 
 import { expect } from "@std/expect";

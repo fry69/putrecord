@@ -48,93 +48,11 @@ export async function cleanupTestDir(dir: string): Promise<void> {
  * // On Unix: /tmp/test/.github/workflows/file.yaml
  * // On Windows: C:\Temp\test\.github\workflows\file.yaml
  * const path = joinPath(tempDir, ".github", "workflows", "file.yaml");
+ * await Deno.writeTextFile(path, "content");
  * ```
  */
 export function joinPath(basePath: string, ...segments: string[]): string {
   return join(basePath, ...segments);
-}
-
-/**
- * Writes a text file to a path constructed with proper OS separators.
- *
- * @param basePath - The base directory path
- * @param segments - Path segments leading to the file
- * @param content - The content to write
- *
- * @example
- * ```ts
- * await writeTestFile(tempDir, [".github", "workflows", "test.yaml"], "content");
- * ```
- */
-export async function writeTestFile(
-  basePath: string,
-  segments: string[],
-  content: string,
-): Promise<void> {
-  const filePath = join(basePath, ...segments);
-  await Deno.writeTextFile(filePath, content);
-}
-
-/**
- * Reads a text file from a path constructed with proper OS separators.
- *
- * @param basePath - The base directory path
- * @param segments - Path segments leading to the file
- * @returns The file content
- *
- * @example
- * ```ts
- * const content = await readTestFile(tempDir, [".github", "workflows", "test.yaml"]);
- * ```
- */
-export async function readTestFile(
-  basePath: string,
-  segments: string[],
-): Promise<string> {
-  const filePath = join(basePath, ...segments);
-  return await Deno.readTextFile(filePath);
-}
-
-/**
- * Gets file or directory stats from a path constructed with proper OS separators.
- *
- * @param basePath - The base directory path
- * @param segments - Path segments leading to the file/directory
- * @returns Deno.FileInfo for the path
- *
- * @example
- * ```ts
- * const stats = await statTestPath(tempDir, [".github", "workflows"]);
- * expect(stats.isDirectory).toBe(true);
- * ```
- */
-export async function statTestPath(
-  basePath: string,
-  segments: string[],
-): Promise<Deno.FileInfo> {
-  const filePath = join(basePath, ...segments);
-  return await Deno.stat(filePath);
-}
-
-/**
- * Creates a directory at a path constructed with proper OS separators.
- *
- * @param basePath - The base directory path
- * @param segments - Path segments for the directory to create
- * @param options - Options to pass to Deno.mkdir (e.g., { recursive: true })
- *
- * @example
- * ```ts
- * await mkdirTestPath(tempDir, [".github", "workflows"], { recursive: true });
- * ```
- */
-export async function mkdirTestPath(
-  basePath: string,
-  segments: string[],
-  options?: Deno.MkdirOptions,
-): Promise<void> {
-  const dirPath = join(basePath, ...segments);
-  await Deno.mkdir(dirPath, options);
 }
 
 /**
@@ -275,6 +193,17 @@ export async function runCLI(
 // ============================================================================
 // E2E Test Utilities for AT Protocol / PDS Operations
 // ============================================================================
+//
+// The functions below are THIN WRAPPERS around AT Protocol API calls.
+// They exist to:
+// 1. Eliminate duplication of authentication and API call boilerplate
+// 2. Provide consistent error handling for test setup/cleanup
+// 3. Keep E2E tests focused on testing business logic, not API mechanics
+//
+// These are NOT complex abstractions - they're transparent helpers that
+// directly map to com.atproto.repo.* API calls. The actual API calls are
+// visible in the implementation and tests remain understandable.
+// ============================================================================
 
 // Import AT Protocol types only when this module is used in E2E tests
 import type { Client } from "@atcute/client";
@@ -283,8 +212,10 @@ import type { ActorIdentifier, Nsid } from "@atcute/lexicons";
 
 /**
  * Setup an authenticated AT Protocol client using environment variables.
- * Reads PDS_URL, IDENTIFIER, and APP_PASSWORD from environment.
+ * This is a convenience wrapper to avoid repeating authentication boilerplate
+ * in every E2E test.
  *
+ * @param envVars - Environment variables from loadE2EConfig()
  * @returns Authenticated client and identifier
  * @throws If required environment variables are missing
  *
@@ -325,6 +256,11 @@ export async function setupE2EClient(
 
 /**
  * Delete a record from the PDS (for test cleanup).
+ *
+ * This is a thin wrapper around com.atproto.repo.deleteRecord that:
+ * - Swallows errors (safe for cleanup - record might not exist)
+ * - Handles type conversions for lexicons
+ *
  * Ignores errors - safe to call even if record doesn't exist.
  *
  * @param client - Authenticated AT Protocol client
@@ -334,6 +270,7 @@ export async function setupE2EClient(
  *
  * @example
  * ```ts
+ * // Cleanup helper - thin wrapper around com.atproto.repo.deleteRecord
  * await deleteE2ERecord(client, identifier, "com.whtwnd.blog.entry", "abc123");
  * ```
  */
@@ -362,6 +299,10 @@ export async function deleteE2ERecord(
 /**
  * Retrieve a record from the PDS.
  *
+ * This is a thin wrapper around com.atproto.repo.getRecord that:
+ * - Handles type conversions for lexicons
+ * - Returns the record in a consistent format
+ *
  * @param client - Authenticated AT Protocol client
  * @param identifier - Actor identifier (DID or handle)
  * @param collection - Collection NSID (e.g., "com.whtwnd.blog.entry")
@@ -370,6 +311,7 @@ export async function deleteE2ERecord(
  *
  * @example
  * ```ts
+ * // Thin wrapper around com.atproto.repo.getRecord
  * const record = await getE2ERecord(client, identifier, "com.whtwnd.blog.entry", "abc123");
  * expect(record.value.title).toBe("My Blog Post");
  * ```
@@ -395,7 +337,13 @@ export async function getE2ERecord(
 
 /**
  * Update a record on the PDS (putRecord operation).
- * Useful for manually modifying records in E2E tests before testing client behavior.
+ *
+ * This is a thin wrapper around com.atproto.repo.putRecord for test setup.
+ * Used to manually modify records before testing library behavior (e.g., set
+ * custom title/visibility to verify preservation logic).
+ *
+ * Note: This is NOT testing the putRecord API itself - it's used to SET UP
+ * test state before testing the actual library functions.
  *
  * @param client - Authenticated AT Protocol client
  * @param identifier - Actor identifier (DID or handle)
@@ -405,6 +353,7 @@ export async function getE2ERecord(
  *
  * @example
  * ```ts
+ * // Set up test state - thin wrapper around com.atproto.repo.putRecord
  * await updateE2ERecord(client, identifier, "com.whtwnd.blog.entry", "abc123", {
  *   ...existingRecord,
  *   title: "Custom Title",
