@@ -1,4 +1,8 @@
 {
+  "name": "@fry69/putrecord",
+  "version": "0.1.0",
+  "exports": "./main.ts",
+  "license": "MIT",
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check main.ts",
     "upload": "deno run --allow-net --allow-env --allow-read main.ts",
