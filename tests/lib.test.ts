@@ -163,6 +163,82 @@ Deno.test("buildRecord - should respect WhiteWind JSON with custom visibility", 
   expect(record.createdAt).toBe("2025-01-01T00:00:00.000Z");
 });
 
+Deno.test("buildRecord - should preserve existing title on update", () => {
+  const collection = "com.whtwnd.blog.entry";
+  const markdown = "# New Title\n\nUpdated content.";
+  const existingRecord = {
+    $type: "com.whtwnd.blog.entry",
+    content: "# Old Title\n\nOld content.",
+    title: "Existing Custom Title",
+    visibility: "public",
+    createdAt: "2025-01-01T00:00:00.000Z",
+  };
+
+  const record = buildRecord(collection, markdown, existingRecord, false);
+
+  // Should preserve existing title
+  expect(record.$type).toBe("com.whtwnd.blog.entry");
+  expect(record.title).toBe("Existing Custom Title");
+  expect(record.visibility).toBe("public");
+  expect(record.content).toBe(markdown);
+});
+
+Deno.test("buildRecord - should preserve existing visibility on update", () => {
+  const collection = "com.whtwnd.blog.entry";
+  const markdown = "# My Post\n\nContent here.";
+  const existingRecord = {
+    $type: "com.whtwnd.blog.entry",
+    content: "# My Post\n\nOld content.",
+    title: "My Post",
+    visibility: "author", // Private visibility
+    createdAt: "2025-01-01T00:00:00.000Z",
+  };
+
+  const record = buildRecord(collection, markdown, existingRecord, false);
+
+  // Should preserve existing visibility
+  expect(record.$type).toBe("com.whtwnd.blog.entry");
+  expect(record.visibility).toBe("author");
+  expect(record.title).toBe("My Post");
+});
+
+Deno.test("buildRecord - should force extract title when forceFields is true", () => {
+  const collection = "com.whtwnd.blog.entry";
+  const markdown = "# New Title From Markdown\n\nUpdated content.";
+  const existingRecord = {
+    $type: "com.whtwnd.blog.entry",
+    content: "# Old Title\n\nOld content.",
+    title: "Existing Custom Title",
+    visibility: "author",
+    createdAt: "2025-01-01T00:00:00.000Z",
+  };
+
+  const record = buildRecord(collection, markdown, existingRecord, true);
+
+  // Should extract title from markdown and reset visibility
+  expect(record.$type).toBe("com.whtwnd.blog.entry");
+  expect(record.title).toBe("New Title From Markdown");
+  expect(record.visibility).toBe("public"); // Reset to default
+  expect(record.content).toBe(markdown);
+});
+
+Deno.test("buildRecord - should handle update with no existing title or visibility", () => {
+  const collection = "com.whtwnd.blog.entry";
+  const markdown = "# New Title\n\nContent.";
+  const existingRecord = {
+    $type: "com.whtwnd.blog.entry",
+    content: "Old content without title.",
+    createdAt: "2025-01-01T00:00:00.000Z",
+  };
+
+  const record = buildRecord(collection, markdown, existingRecord, false);
+
+  // Should extract title and set default visibility since they don't exist
+  expect(record.$type).toBe("com.whtwnd.blog.entry");
+  expect(record.title).toBe("New Title");
+  expect(record.visibility).toBe("public");
+});
+
 Deno.test("readFile - should read file successfully", async () => {
   const tempDir = await Deno.makeTempDir({ prefix: "putrecord_test_" });
 

@@ -102,7 +102,7 @@ console.log(`File size: ${content.length} characters`);
 
 ---
 
-### `buildRecord(collection: string, content: string): Record<string, unknown>`
+### `buildRecord(collection: string, content: string, existingRecord?: Record<string, unknown>, forceFields?: boolean): Record<string, unknown>`
 
 Builds an AT Protocol record from content. Intelligently handles different
 content types.
@@ -111,6 +111,9 @@ content types.
 
 - `collection` - Collection NSID (e.g., `"com.example.note"`)
 - `content` - File content (text or JSON)
+- `existingRecord` - Optional: Existing record data for updates
+- `forceFields` - Optional: If true, always extract/set fields even if they
+  exist (default: false)
 
 **Returns:** Record object ready for AT Protocol
 
@@ -119,6 +122,10 @@ content types.
 - If content is valid JSON with a `$type` field: Uses the parsed JSON as-is
 - For WhiteWind blog entries (`com.whtwnd.blog.entry`): Creates proper blog
   record with required `visibility` field and extracts title from markdown
+  - **When updating** (existingRecord provided): Preserves existing `title` and
+    `visibility` unless `forceFields` is true
+  - **When creating** (no existingRecord): Extracts title from markdown and sets
+    `visibility: "public"`
 - Otherwise: Wraps content in a structure with `$type`, `content`, and
   `createdAt` fields
 
@@ -153,6 +160,46 @@ const record = buildRecord("com.whtwnd.blog.entry", markdown);
 // }
 ```
 
+**WhiteWind Update (Preserving Existing Fields):**
+
+```typescript
+const markdown = "# New Title\n\nUpdated content.";
+const existingRecord = {
+  $type: "com.whtwnd.blog.entry",
+  content: "# Old Title\n\nOld content.",
+  title: "Custom Title That I Set",
+  visibility: "author",
+  createdAt: "2025-01-01T00:00:00.000Z",
+};
+
+// Preserves existing title and visibility by default
+const record = buildRecord("com.whtwnd.blog.entry", markdown, existingRecord);
+// Returns:
+// {
+//   $type: "com.whtwnd.blog.entry",
+//   content: "# New Title\n\nUpdated content.",
+//   title: "Custom Title That I Set",  // ← Preserved!
+//   visibility: "author",               // ← Preserved!
+//   createdAt: "2025-10-08T..."
+// }
+
+// Force extraction of title from markdown
+const recordForced = buildRecord(
+  "com.whtwnd.blog.entry",
+  markdown,
+  existingRecord,
+  true
+);
+// Returns:
+// {
+//   $type: "com.whtwnd.blog.entry",
+//   content: "# New Title\n\nUpdated content.",
+//   title: "New Title",      // ← Extracted from markdown!
+//   visibility: "public",    // ← Reset to default!
+//   createdAt: "2025-10-08T..."
+// }
+```
+
 **Custom JSON Schema:**
 
 ```typescript
@@ -171,6 +218,47 @@ const record = buildRecord("com.example.post", jsonContent);
 //   body: "Content here",
 //   tags: ["tech", "atproto"]
 // }
+```
+
+---
+
+### `getRecord(client: Client, config: Config): Promise<Record<string, unknown> | null>`
+
+Fetches an existing record from the PDS.
+
+**Parameters:**
+
+- `client` - Authenticated AT Protocol client
+- `config` - Configuration object (must include `rkey`)
+
+**Returns:** Promise resolving to the existing record data, or `null` if not
+found or RKEY not provided
+
+**Throws:** Does not throw - returns `null` on error
+
+**Example:**
+
+```typescript
+import { Client, CredentialManager } from "@atcute/client";
+import { getRecord, loadConfig } from "jsr:@fry69/putrecord/lib";
+
+// Setup (config must include RKEY)
+Deno.env.set("RKEY", "3l4k2j3h4k5l");
+const config = loadConfig();
+
+const manager = new CredentialManager({ service: config.pdsUrl });
+const client = new Client({ handler: manager });
+await manager.login({
+  identifier: config.identifier,
+  password: config.password,
+});
+
+// Fetch existing record
+const existingRecord = await getRecord(client, config);
+if (existingRecord) {
+  console.log("Existing title:", existingRecord.title);
+  console.log("Existing visibility:", existingRecord.visibility);
+}
 ```
 
 ---

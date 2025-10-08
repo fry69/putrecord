@@ -132,6 +132,10 @@ Automatically becomes:
 }
 ```
 
+**Important:** When updating existing WhiteWind records, putrecord preserves
+your custom `title` and `visibility` fields. Use `--force-fields` to override
+and always extract the title from markdown.
+
 **Custom JSON Example:**
 
 ```json
@@ -147,6 +151,8 @@ Automatically becomes:
 
 - `-q, --quiet` - Suppress non-error output
 - `-f, --force` - Overwrite existing files (init command)
+- `--force-fields` - Force extraction of fields (title, visibility) from
+  content, overwriting existing values in update mode
 - `-h, --help` - Show help
 - `-v, --version` - Show version
 

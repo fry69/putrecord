@@ -41,17 +41,23 @@ This automatically reads your `.env` file and creates secrets for all variables.
 3. Click **"New repository secret"**
 4. Add each secret:
 
-| Secret Name    | Value                 | Description           |
-| -------------- | --------------------- | --------------------- |
-| `PDS_URL`      | `https://bsky.social` | Your PDS endpoint     |
-| `IDENTIFIER`   | `alice.bsky.social`   | Your handle or DID    |
-| `APP_PASSWORD` | `xxxx-xxxx-xxxx-xxxx` | Your app password     |
-| `COLLECTION`   | `com.example.note`    | Collection NSID       |
-| `FILE_PATH`    | `./content/note.txt`  | Path to file in repo  |
-| `RKEY`         | `3l4k2j3h4k5l`        | Record key (optional) |
+| Secret Name    | Value                 | Description                             |
+| -------------- | --------------------- | --------------------------------------- |
+| `PDS_URL`      | `https://bsky.social` | Your PDS endpoint                       |
+| `IDENTIFIER`   | `alice.bsky.social`   | Your handle or DID                      |
+| `APP_PASSWORD` | `xxxx-xxxx-xxxx-xxxx` | Your app password                       |
+| `COLLECTION`   | `com.example.note`    | Collection NSID                         |
+| `FILE_PATH`    | `./content/note.txt`  | Path to file in repo                    |
+| `RKEY`         | `3l4k2j3h4k5l`        | Record key (optional)                   |
+| `FORCE_FIELDS` | `true`                | Force field extraction (optional, rare) |
 
 **Important:** Use an **app password**, not your main account password! Generate
 one in your PDS settings.
+
+**About FORCE_FIELDS:** By default, putrecord preserves existing `title` and
+`visibility` fields when updating WhiteWind blog entries. Set `FORCE_FIELDS` to
+`true` only if you want to always extract the title from markdown and reset
+visibility to `public`. Most users should NOT set this.
 
 ## Workflow Configuration
 

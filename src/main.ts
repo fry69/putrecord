@@ -1,7 +1,13 @@
 /**
  * Command-line interface for putrecord.
  *
- * This module provides a CLI wrapper around the library functions with
+ * This module prov  # Quiet mode (only errors)
+  deno run -A jsr:@fry69/putrecord --quiet
+
+  # Force field extraction (for WhiteWind: always extract title from content)
+  deno run -A jsr:@fry69/putrecord --force-fields
+
+For more information, visit: https://github.com/fry69/putrecord a CLI wrapper around the library functions with
  * appropriate logging and error handling.
  *
  * @module
@@ -12,6 +18,7 @@ import { Client, CredentialManager } from "@atcute/client";
 import {
   buildRecord,
   createRecord,
+  getRecord,
   loadConfig,
   readFile,
   uploadRecord,
@@ -38,10 +45,12 @@ COMMANDS:
   init            Initialize GitHub Actions workflow and .env.example
 
 OPTIONS:
-  -q, --quiet     Suppress all non-error output
-  -f, --force     Overwrite existing files (for init command)
-  -h, --help      Show this help message
-  -v, --version   Show version information
+  -q, --quiet          Suppress all non-error output
+  -f, --force          Overwrite existing files (for init command)
+  --force-fields       Always extract fields (title, visibility) from content,
+                       overwriting existing values in update mode
+  -h, --help           Show this help message
+  -v, --version        Show version information
 
 CONFIGURATION:
   Configuration is loaded from environment variables:
@@ -51,6 +60,7 @@ CONFIGURATION:
     COLLECTION    - Lexicon collection in NSID format
     FILE_PATH     - Path to file to upload
     RKEY          - Record key (optional - omit to create new record)
+    FORCE_FIELDS  - Set to "true" to force field extraction (optional)
 
 EXAMPLES:
   # Initialize project with GitHub Actions workflow
@@ -177,7 +187,7 @@ async function initProject(force: boolean, logger: Logger) {
 async function main() {
   // Parse command-line arguments
   const args = parseArgs(Deno.args, {
-    boolean: ["quiet", "help", "version", "force"],
+    boolean: ["quiet", "help", "version", "force", "force-fields"],
     alias: {
       q: "quiet",
       h: "help",
@@ -237,9 +247,28 @@ async function main() {
     });
     logger.log("✓ Authentication successful");
 
+    // Check for force-fields flag from CLI or environment
+    const forceFields = args["force-fields"] ||
+      Deno.env.get("FORCE_FIELDS") === "true";
+
+    // Fetch existing record if updating (RKEY is set)
+    let existingRecord: Record<string, unknown> | null = null;
+    if (config.rkey && !forceFields) {
+      logger.log("Fetching existing record to preserve fields...");
+      existingRecord = await getRecord(client, config);
+      if (existingRecord) {
+        logger.log("✓ Existing record fetched");
+      }
+    }
+
     // Build record from file content
     logger.log("Building record from file content...");
-    const record = buildRecord(config.collection, content);
+    const record = buildRecord(
+      config.collection,
+      content,
+      existingRecord ?? undefined,
+      forceFields,
+    );
 
     // Upload or create record based on whether RKEY is provided
     if (config.rkey) {

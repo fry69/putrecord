@@ -138,6 +138,39 @@ function extractMarkdownTitle(content: string): string | undefined {
 }
 
 /**
+ * Fetch an existing record from the PDS.
+ *
+ * @param client The authenticated AT Protocol client
+ * @param config The configuration containing repository, collection, and RKEY
+ * @returns The existing record data, or null if not found
+ */
+async function getRecord(
+  client: Client,
+  config: Config,
+): Promise<Record<string, unknown> | null> {
+  if (!config.rkey) {
+    return null;
+  }
+
+  try {
+    const response = await ok(
+      client.get("com.atproto.repo.getRecord", {
+        params: {
+          repo: config.identifier as ActorIdentifier,
+          collection: config.collection as Nsid,
+          rkey: config.rkey,
+        },
+      }),
+    );
+
+    return response.value as Record<string, unknown>;
+  } catch {
+    // Record doesn't exist or error fetching
+    return null;
+  }
+}
+
+/**
  * Build an AT Protocol record from file content.
  *
  * This function intelligently handles different content types:
@@ -147,11 +180,16 @@ function extractMarkdownTitle(content: string): string | undefined {
  * - Otherwise, it wraps the content in a simple structure with `$type`,
  *   `content`, and `createdAt` fields
  *
+ * When updating existing records (existingRecord provided), the function
+ * preserves existing `title` and `visibility` fields unless forceFields is true.
+ *
  * This allows flexibility to work with any AT Protocol collection and custom
  * lexicon schemas.
  *
  * @param collection The lexicon collection NSID (e.g., "com.example.note")
  * @param content The file content to convert into a record
+ * @param existingRecord Optional existing record data (for updates)
+ * @param forceFields If true, always extract/set fields even if they exist
  * @returns An AT Protocol record ready to upload
  *
  * @example Simple text content
@@ -187,6 +225,8 @@ function extractMarkdownTitle(content: string): string | undefined {
 function buildRecord(
   collection: string,
   content: string,
+  existingRecord?: Record<string, unknown>,
+  forceFields = false,
 ): Record<string, unknown> {
   // Try to parse as JSON first
   try {
@@ -204,17 +244,29 @@ function buildRecord(
 
   // Special handling for WhiteWind blog entries
   if (collection === "com.whtwnd.blog.entry") {
-    const title = extractMarkdownTitle(content);
+    const extractedTitle = extractMarkdownTitle(content);
     const record: Record<string, unknown> = {
       $type: collection,
       content,
-      visibility: "public", // Default to public visibility
       createdAt: new Date().toISOString(),
     };
 
-    // Add title if extracted from markdown
-    if (title) {
-      record.title = title;
+    // Handle visibility field
+    if (existingRecord && !forceFields && existingRecord.visibility) {
+      // Preserve existing visibility
+      record.visibility = existingRecord.visibility;
+    } else {
+      // Set default visibility
+      record.visibility = "public";
+    }
+
+    // Handle title field
+    if (existingRecord && !forceFields && existingRecord.title) {
+      // Preserve existing title
+      record.title = existingRecord.title;
+    } else if (extractedTitle) {
+      // Use extracted title
+      record.title = extractedTitle;
     }
 
     return record;
@@ -313,7 +365,14 @@ async function uploadRecord(
 }
 
 // Export all library functions
-export { buildRecord, createRecord, loadConfig, readFile, uploadRecord };
+export {
+  buildRecord,
+  createRecord,
+  getRecord,
+  loadConfig,
+  readFile,
+  uploadRecord,
+};
 
 // Export types for users who need them
 export type { Config };
